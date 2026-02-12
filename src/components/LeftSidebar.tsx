@@ -1,0 +1,40 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+const nav = [
+  { href: "/", label: "Home" },
+  { href: "/categories", label: "Categories" },
+  { href: "/tags", label: "Tags" },
+  { href: "/trending", label: "Trending Posts" },
+];
+
+export function LeftSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="hidden lg:block w-56 shrink-0">
+      <nav className="sticky top-20 rounded-2xl bg-niat-section border border-niat-border p-3 shadow-soft">
+        <ul className="space-y-0.5">
+          {nav.map(({ href, label }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className={cn(
+                  "block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  pathname === href || (href !== "/" && pathname.startsWith(href))
+                    ? "bg-primary text-primary-foreground"
+                    : "text-niat-text hover:bg-niat-border/50"
+                )}
+              >
+                {label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  );
+}

@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========== NIAT Brand Design Tokens ========== */
+:root {
+  /* Core */
+  --primary: #991b1b;
+  --primary-light: #b91c1c;
+  --primary-dark: #7f1d1d;
+
+  /* Secondary (Purple Accent) */
+  --secondary: #7678ed;
+  --secondary-light: #9496f0;
+  --secondary-dark: #5a5cb8;
+
+  /* Accents */
+  --accent-1: #f7b801;
+  --accent-2: #f18701;
+  --accent-3: #f35b04;
+
+  /* Semantic UI */
+  --niat-navbar: #fff8eb;
+  --niat-section: #fbf2f3;
+  --niat-text: #1e293b;
+  --niat-text-secondary: rgba(30, 41, 59, 0.7);
+  --niat-border: rgba(30, 41, 59, 0.1);
+
+  /* Hero */
+  --hero-from: #220000;
+  --hero-to: #974039;
+
+  /* Foreground on primary (white) */
+  --primary-foreground: #ffffff;
+  --secondary-foreground: #ffffff;
+}
+
+body {
+  @apply antialiased;
+  background-color: var(--niat-section);
+  color: var(--niat-text);
+}
