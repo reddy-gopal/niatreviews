@@ -15,13 +15,13 @@ import type { ProfileTabId, TabItem } from "@/components/profile";
 import { usePosts } from "@/hooks/usePosts";
 import { useCommentsList } from "@/hooks/useProfileData";
 import { PostCard } from "@/components/PostCard";
+import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
 import { cn } from "@/lib/utils";
 
 const PROFILE_TABS: TabItem[] = [
   { id: "overview", label: "Overview" },
   { id: "posts", label: "Posts" },
   { id: "comments", label: "Comments" },
-  { id: "saved", label: "Saved" },
   { id: "upvoted", label: "Upvoted" },
 ];
 
@@ -60,13 +60,8 @@ export default function ProfilePage() {
 
   if (status === "pending" || !profile) {
     return (
-      <div className="flex min-h-[60vh] flex-col gap-6 lg:flex-row">
-        <div className="w-full shrink-0 lg:w-[300px]">
-          <div className="h-48 animate-pulse rounded-lg border border-niat-border bg-[var(--niat-section)]" />
-        </div>
-        <div className="flex-1 rounded-lg border border-niat-border bg-[var(--niat-section)] p-8">
-          <p className="text-niat-text-secondary">Loading profile…</p>
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -156,7 +151,7 @@ export default function ProfilePage() {
       }
       case "posts": {
         if (postsQuery.isLoading) {
-          return <p className="py-8 text-niat-text-secondary">Loading posts…</p>;
+          return <LoadingBlock className="py-8" />;
         }
         if (posts.length === 0) {
           return (
@@ -180,7 +175,14 @@ export default function ProfilePage() {
                 disabled={postsQuery.isFetchingNextPage}
                 className="w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
               >
-                {postsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+                {postsQuery.isFetchingNextPage ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Load more
+                  </span>
+                ) : (
+                  "Load more"
+                )}
               </button>
             )}
           </div>
@@ -188,7 +190,7 @@ export default function ProfilePage() {
       }
       case "comments": {
         if (commentsQuery.isLoading) {
-          return <p className="py-8 text-niat-text-secondary">Loading comments…</p>;
+          return <LoadingBlock className="py-8" />;
         }
         if (comments.length === 0) {
           return (
@@ -235,24 +237,24 @@ export default function ProfilePage() {
                 disabled={commentsQuery.isFetchingNextPage}
                 className="w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
               >
-                {commentsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+                {commentsQuery.isFetchingNextPage ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Load more
+                  </span>
+                ) : (
+                  "Load more"
+                )}
               </button>
             )}
           </div>
         );
       }
-      case "saved":
-        return (
-          <EmptyState
-            title="No saved posts"
-            description="Save posts to find them here later. Coming soon."
-          />
-        );
       case "upvoted": {
         const hasPosts = upvotedPosts.length > 0;
         const hasComments = upvotedComments.length > 0;
         if (upvotedPostsQuery.isLoading && upvotedCommentsQuery.isLoading) {
-          return <p className="py-8 text-niat-text-secondary">Loading…</p>;
+          return <LoadingBlock className="py-8" />;
         }
         if (!hasPosts && !hasComments) {
           return (
@@ -282,7 +284,14 @@ export default function ProfilePage() {
                       disabled={upvotedPostsQuery.isFetchingNextPage}
                       className="w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
                     >
-                      {upvotedPostsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+                      {upvotedPostsQuery.isFetchingNextPage ? (
+                        <span className="inline-flex items-center gap-2">
+                          <LoadingSpinner size="sm" />
+                          Load more
+                        </span>
+                      ) : (
+                        "Load more"
+                      )}
                     </button>
                   )}
                 </div>
@@ -318,7 +327,14 @@ export default function ProfilePage() {
                     disabled={upvotedCommentsQuery.isFetchingNextPage}
                     className="mt-2 w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
                   >
-                    {upvotedCommentsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+                    {upvotedCommentsQuery.isFetchingNextPage ? (
+                      <span className="inline-flex items-center gap-2">
+                        <LoadingSpinner size="sm" />
+                        Load more
+                      </span>
+                    ) : (
+                      "Load more"
+                    )}
                   </button>
                 )}
               </section>
@@ -333,8 +349,8 @@ export default function ProfilePage() {
 
   return (
     <div className="flex min-h-[60vh] flex-col gap-4 sm:gap-6 lg:flex-row">
-      {/* Profile card — left */}
-      <div className="w-full shrink-0 lg:w-[300px] order-2 lg:order-1">
+      {/* Profile card — first on mobile (top), left on desktop */}
+      <div className="w-full shrink-0 lg:w-[300px] order-1">
         <div className="lg:sticky lg:top-24">
           <ProfileCard
             username={profile.username}
@@ -344,8 +360,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Main content — right */}
-      <div className="min-w-0 flex-1 order-1 lg:order-2">
+      {/* Tabs (Overview, Posts, etc.) — below profile on mobile, right on desktop */}
+      <div className="min-w-0 flex-1 order-2">
         <div className="rounded-lg border border-niat-border bg-[var(--niat-section)] shadow-soft transition-colors duration-200 overflow-hidden">
           <TabNavigation
             tabs={PROFILE_TABS}

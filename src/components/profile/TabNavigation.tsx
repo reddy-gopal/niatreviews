@@ -6,7 +6,6 @@ export type ProfileTabId =
   | "overview"
   | "posts"
   | "comments"
-  | "saved"
   | "history"
   | "hidden"
   | "upvoted"
@@ -21,7 +20,6 @@ const DEFAULT_TABS: TabItem[] = [
   { id: "overview", label: "Overview" },
   { id: "posts", label: "Posts" },
   { id: "comments", label: "Comments" },
-  { id: "saved", label: "Saved" },
   { id: "history", label: "History" },
   { id: "hidden", label: "Hidden" },
   { id: "upvoted", label: "Upvoted" },

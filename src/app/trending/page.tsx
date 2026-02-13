@@ -3,17 +3,14 @@
 import Link from "next/link";
 import { usePosts } from "@/hooks/usePosts";
 import { PostCard } from "@/components/PostCard";
+import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
 
 export default function TrendingPage() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, error } =
     usePosts();
 
   if (status === "pending") {
-    return (
-      <div className="py-12 text-center text-niat-text-secondary">
-        Loading…
-      </div>
-    );
+    return <LoadingBlock />;
   }
   if (status === "error") {
     return (
@@ -45,7 +42,14 @@ export default function TrendingPage() {
             disabled={isFetchingNextPage}
             className="rounded-xl border border-niat-border bg-niat-section px-5 py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50 transition-colors"
           >
-            {isFetchingNextPage ? "Loading…" : "Load more"}
+            {isFetchingNextPage ? (
+              <span className="inline-flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                Load more
+              </span>
+            ) : (
+              "Load more"
+            )}
           </button>
         </div>
       )}

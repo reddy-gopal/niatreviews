@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import api from "@/lib/api";
-import { isAuthenticated } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import { usePostDetail } from "@/hooks/usePostDetail";
+import api, { fetchProfile, updatePost } from "@/lib/api";
+import { isAuthenticated } from "@/lib/auth";
 import type { Category, Tag } from "@/types/post";
+import { LoadingBlock } from "@/components/LoadingSpinner";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -19,11 +22,19 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function CreatePostPage() {
+export default function EditPostPage() {
+  const params = useParams();
   const router = useRouter();
+  const slug = params.slug as string;
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  const postQuery = usePostDetail(slug);
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: fetchProfile,
+    enabled: isAuthenticated(),
+  });
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
@@ -39,53 +50,64 @@ export default function CreatePostPage() {
     },
   });
 
+  const post = postQuery.data;
+  const isAuthor = !!profile?.id && !!post?.author && (post.author as { id: string }).id === profile.id;
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
     watch,
+    reset,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { category: "", tags: [] },
+    defaultValues: {
+      title: post?.title ?? "",
+      description: post?.description ?? "",
+      category: post?.category?.id ?? "",
+      tags: post?.tags?.map((t) => t.id) ?? [],
+    },
   });
+
+  useEffect(() => {
+    if (post) {
+      reset({
+        title: post.title,
+        description: post.description,
+        category: post.category?.id ?? "",
+        tags: post.tags?.map((t) => t.id) ?? [],
+      });
+    }
+  }, [post, reset]);
 
   const selectedTags = watch("tags") ?? [];
 
   useEffect(() => {
     if (typeof window !== "undefined" && !isAuthenticated()) {
       router.replace("/login");
+      return;
     }
-  }, [router]);
+    if (postQuery.isSuccess && post && !isAuthor) {
+      router.replace(`/posts/${slug}`);
+    }
+  }, [postQuery.isSuccess, post, isAuthor, slug, router]);
 
   const onSubmit = async (data: FormData) => {
     setError(null);
     try {
       const tagIds = data.tags ?? [];
-    const payload: Record<string, unknown> = {
+      await updatePost(slug, {
         title: data.title,
         description: data.description,
         category: data.category || null,
         tag_ids: tagIds,
-      };
-      if (imageFile) {
-        const formData = new FormData();
-        formData.append("title", data.title);
-        formData.append("description", data.description);
-        formData.append("category", data.category || "");
-        tagIds.forEach((id) => formData.append("tag_ids", id));
-        formData.append("image", imageFile);
-        const { data: post } = await api.post<{ id: string; slug: string }>("/posts/", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        router.push(`/posts/${post.slug}`);
-      } else {
-        const { data: post } = await api.post<{ id: string; slug: string }>("/posts/", payload);
-        router.push(`/posts/${post.slug}`);
-      }
+        image: imageFile ?? undefined,
+      });
+      router.push(`/posts/${slug}`);
       router.refresh();
     } catch {
-      setError("Failed to create post.");
+      setError("Failed to update post.");
     }
   };
 
@@ -98,15 +120,41 @@ export default function CreatePostPage() {
     );
   };
 
+  if (postQuery.isLoading || !post) {
+    return (
+      <div className="py-12 text-center">
+        {postQuery.error ? (
+          <p className="text-primary">Failed to load post.</p>
+        ) : (
+          <LoadingBlock />
+        )}
+      </div>
+    );
+  }
+
+  if (!isAuthor) {
+    return null;
+  }
+
   return (
     <div
       className="mx-auto max-w-xl space-y-6 py-8 rounded-2xl border border-niat-border p-6 shadow-soft"
       style={{ backgroundColor: "var(--niat-section)" }}
     >
-      <h1 className="text-2xl font-bold text-niat-text">Create post</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-niat-text">Edit post</h1>
+        <Link
+          href={`/posts/${slug}`}
+          className="text-sm font-medium text-niat-text-secondary hover:text-primary"
+        >
+          Cancel
+        </Link>
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {error && (
-          <p className="text-sm text-primary bg-primary/10 border border-primary p-2 rounded-xl">{error}</p>
+          <p className="text-sm text-primary bg-primary/10 border border-primary p-2 rounded-xl">
+            {error}
+          </p>
         )}
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-niat-text mb-1">
@@ -115,36 +163,32 @@ export default function CreatePostPage() {
           <input
             id="title"
             {...register("title")}
-            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          {errors.title && (
-            <p className="text-sm text-primary mt-1">{errors.title.message}</p>
-          )}
+          {errors.title && <p className="text-sm text-primary mt-1">{errors.title.message}</p>}
         </div>
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-niat-text mb-1">
             Description
           </label>
           <p className="text-xs text-niat-text-secondary mb-1">
-            You can add #hashtags in the text; they will be used as tags (e.g. #NIAT #placements).
+            You can add #hashtags in the text; they will be used as tags.
           </p>
           <textarea
             id="description"
             {...register("description")}
             rows={6}
-            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {errors.description && (
-            <p className="text-sm text-primary mt-1">
-              {errors.description.message}
-            </p>
+            <p className="text-sm text-primary mt-1">{errors.description.message}</p>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium text-niat-text mb-1">Category</label>
           <select
             {...register("category")}
-            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">None</option>
             {categories?.map((c) => (
@@ -174,7 +218,9 @@ export default function CreatePostPage() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-niat-text mb-1">Image (optional)</label>
+          <label className="block text-sm font-medium text-niat-text mb-1">
+            Image (optional, leave empty to keep current)
+          </label>
           <input
             type="file"
             accept="image/*"
@@ -186,7 +232,7 @@ export default function CreatePostPage() {
           type="submit"
           className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
         >
-          Publish
+          Save changes
         </button>
       </form>
     </div>

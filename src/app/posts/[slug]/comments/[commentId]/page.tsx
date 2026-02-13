@@ -11,6 +11,7 @@ import { CommentForm } from "@/components/CommentForm";
 import { getCommentSubtree, buildCommentTree } from "@/lib/commentTree";
 import { isAuthenticated } from "@/lib/auth";
 import { API_BASE } from "@/lib/utils";
+import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
 
 export default function FocusedCommentPage() {
   const params = useParams();
@@ -36,11 +37,11 @@ export default function FocusedCommentPage() {
 
   if (postQuery.isLoading || postQuery.error) {
     return (
-      <div className="py-12 text-center text-niat-text-secondary">
+      <div className="py-12 text-center">
         {postQuery.error ? (
           <p className="text-primary">Failed to load post.</p>
         ) : (
-          <p>Loading…</p>
+          <LoadingBlock />
         )}
       </div>
     );
@@ -134,9 +135,9 @@ export default function FocusedCommentPage() {
         )}
 
         {commentsQuery.isLoading ? (
-          <p className="text-niat-text-secondary">Loading comments…</p>
+          <LoadingBlock className="py-6" />
         ) : subtree.length === 0 ? (
-          <p className="text-niat-text-secondary">Loading…</p>
+          <LoadingBlock className="py-6" />
         ) : (
           <CommentThread
             comments={allComments}
@@ -156,7 +157,14 @@ export default function FocusedCommentPage() {
               disabled={commentsQuery.isFetchingNextPage}
               className="rounded-xl border border-niat-border px-4 py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50 transition-colors w-full sm:w-auto"
             >
-              {commentsQuery.isFetchingNextPage ? "Loading…" : "Load more comments"}
+              {commentsQuery.isFetchingNextPage ? (
+                <span className="inline-flex items-center gap-2">
+                  <LoadingSpinner size="sm" />
+                  Load more comments
+                </span>
+              ) : (
+                "Load more comments"
+              )}
             </button>
           </div>
         )}

@@ -2,14 +2,19 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { Post } from "@/types/post";
 import { UpvoteButton } from "./UpvoteButton";
 import { usePostUpvote } from "@/hooks/useUpvote";
 import { useToast } from "./Toast";
+import { fetchProfile } from "@/lib/api";
+import { deletePost } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { API_BASE } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { User, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { User, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 interface PostCardProps {
   post: Post;
@@ -17,9 +22,27 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, showUpvote = true }: PostCardProps) {
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { upvote, downvote, removeVote, isLoading } = usePostUpvote(post.slug);
   const { showLoginRequired } = useToast();
   const auth = isAuthenticated();
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: fetchProfile,
+    enabled: auth,
+  });
+  const isAuthor = !!profile?.id && !!post.author && (post.author as { id: string }).id === profile.id;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [menuOpen]);
   const upvoteCount = post.upvote_count ?? 0;
   const downvoteCount = post.downvote_count ?? 0;
   const score = upvoteCount - downvoteCount;
@@ -60,8 +83,8 @@ export function PostCard({ post, showUpvote = true }: PostCardProps) {
         "bg-[var(--niat-section)]"
       )}
     >
-      {/* Profile row at top — links to user profile */}
-      <div className="px-4 pt-3 pb-1 sm:px-5">
+      {/* Profile row at top — links to user profile; author menu */}
+      <div className="px-4 pt-3 pb-1 sm:px-5 flex items-center justify-between gap-2">
         <Link
           href={profileUrl}
           className="inline-flex items-center gap-2 rounded-lg py-1 pr-2 -ml-1 text-sm text-niat-text-secondary hover:text-primary hover:bg-niat-border/30 transition-colors"
@@ -80,6 +103,45 @@ export function PostCard({ post, showUpvote = true }: PostCardProps) {
             </time>
           </span>
         </Link>
+        {isAuthor && (
+          <div className="relative shrink-0" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen((o) => !o); }}
+              className="p-2 rounded-lg text-niat-text-secondary hover:bg-niat-border/50 hover:text-niat-text transition-colors"
+              aria-label="Post options"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 w-36 rounded-xl border border-niat-border py-1 shadow-card z-10"
+                style={{ backgroundColor: "var(--niat-section)" }}
+              >
+                <Link
+                  href={`/posts/${post.slug}/edit`}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50"
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </Link>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    if (typeof window !== "undefined" && window.confirm("Delete this post? This cannot be undone.")) {
+                      deletePost(post.slug).then(() => router.refresh());
+                    }
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-niat-border/50 text-left"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main body: clickable to post */}
@@ -165,14 +227,6 @@ export function PostCard({ post, showUpvote = true }: PostCardProps) {
           >
             <Share2 className="h-5 w-5 shrink-0" aria-hidden />
             <span className="hidden sm:inline">Share</span>
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg p-2 sm:px-3 sm:py-1.5 text-sm font-medium text-niat-text-secondary hover:bg-niat-border/50 hover:text-niat-text transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 justify-center sm:justify-start"
-            aria-label="Save post"
-          >
-            <Bookmark className="h-5 w-5 shrink-0" aria-hidden />
-            <span className="hidden sm:inline">Save</span>
           </button>
         </div>
       </div>

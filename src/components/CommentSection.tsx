@@ -4,6 +4,7 @@ import { useComments } from "@/hooks/useComments";
 import { CommentThread } from "@/components/CommentThread";
 import { CommentForm } from "@/components/CommentForm";
 import { isAuthenticated } from "@/lib/auth";
+import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
 
 interface CommentSectionProps {
   postId: string;
@@ -38,7 +39,7 @@ export function CommentSection({
       )}
 
       {commentsQuery.isLoading ? (
-        <p className="text-niat-text-secondary py-6">Loading comments…</p>
+        <LoadingBlock className="py-6" />
       ) : tree.length === 0 ? (
         <p className="text-niat-text-secondary py-6">No comments yet.</p>
       ) : (
@@ -57,7 +58,14 @@ export function CommentSection({
           disabled={commentsQuery.isFetchingNextPage}
           className="mt-4 w-full sm:w-auto rounded-xl border border-niat-border px-4 py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50 transition-colors touch-manipulation"
         >
-          {commentsQuery.isFetchingNextPage ? "Loading…" : "Load more comments"}
+          {commentsQuery.isFetchingNextPage ? (
+            <span className="inline-flex items-center gap-2">
+              <LoadingSpinner size="sm" />
+              Load more comments
+            </span>
+          ) : (
+            "Load more comments"
+          )}
         </button>
       )}
     </section>

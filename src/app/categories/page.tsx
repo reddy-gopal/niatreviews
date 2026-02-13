@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Category } from "@/types/post";
+import { LoadingBlock } from "@/components/LoadingSpinner";
 
 export default function CategoriesListPage() {
   const { data: categories, status, error } = useQuery({
@@ -15,9 +16,7 @@ export default function CategoriesListPage() {
   });
 
   if (status === "pending") {
-    return (
-      <div className="py-12 text-center text-niat-text-secondary">Loading…</div>
-    );
+    return <LoadingBlock />;
   }
   if (status === "error") {
     return (
@@ -29,7 +28,7 @@ export default function CategoriesListPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-niat-text">Categories</h1>
+      <h1 className="text-2xl font-bold text-niat-text">Explore</h1>
       <div className="flex flex-wrap gap-2">
         {!categories?.length ? (
           <p className="text-niat-text-secondary">No categories yet.</p>

@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Navbar } from "@/components/Navbar";
-import { MainLayout } from "@/components/MainLayout";
+import { AppChrome } from "@/components/AppChrome";
+import { SeniorOnboardingGuard } from "@/components/SeniorOnboardingGuard";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "NIATReviews — Community",
@@ -15,13 +22,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={plusJakarta.variable}>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <Providers>
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <MainLayout>{children}</MainLayout>
-          </div>
+          <SeniorOnboardingGuard>
+            <AppChrome>{children}</AppChrome>
+          </SeniorOnboardingGuard>
         </Providers>
       </body>
     </html>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Tag } from "@/types/post";
+import { LoadingBlock } from "@/components/LoadingSpinner";
 
 export default function TagsListPage() {
   const { data: tags, status, error } = useQuery({
@@ -15,9 +16,7 @@ export default function TagsListPage() {
   });
 
   if (status === "pending") {
-    return (
-      <div className="py-12 text-center text-niat-text-secondary">Loading…</div>
-    );
+    return <LoadingBlock />;
   }
   if (status === "error") {
     return (

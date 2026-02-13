@@ -9,6 +9,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+      },
       colors: {
         /* NIAT brand – use these everywhere instead of default blue/gray */
         primary: {

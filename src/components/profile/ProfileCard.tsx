@@ -70,7 +70,7 @@ export function ProfileCard({
             aria-label="Share profile"
           >
             <Share2 className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Share</span>
+            <span>Share</span>
           </button>
           {onEdit && (
             <button
@@ -80,7 +80,7 @@ export function ProfileCard({
               aria-label="Edit profile"
             >
               <Pencil className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Edit profile</span>
+              <span>Edit</span>
             </button>
           )}
         </div>

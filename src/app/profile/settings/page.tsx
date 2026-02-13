@@ -10,6 +10,7 @@ import { z } from "zod";
 import { isAuthenticated } from "@/lib/auth";
 import { fetchProfile, updateProfile, type Profile } from "@/lib/api";
 import { ChevronLeft } from "lucide-react";
+import { LoadingBlock } from "@/components/LoadingSpinner";
 
 const schema = z.object({
   email: z.string().email("Invalid email"),
@@ -72,10 +73,10 @@ export default function ProfileSettingsPage() {
   if (status === "pending" || !profile) {
     return (
       <div
-        className="rounded-2xl border border-niat-border p-8 shadow-soft"
+        className="rounded-2xl border border-niat-border p-8 shadow-soft flex items-center justify-center min-h-[200px]"
         style={{ backgroundColor: "var(--niat-section)" }}
       >
-        <p className="text-niat-text-secondary">Loading…</p>
+        <LoadingBlock />
       </div>
     );
   }

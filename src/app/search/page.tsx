@@ -3,10 +3,42 @@
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, ArrowLeft } from "lucide-react";
 import { useSearch } from "@/hooks/useSearch";
 import { PostCard } from "@/components/PostCard";
+import { SearchBar } from "@/components/SearchBar";
+import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
 import { cn } from "@/lib/utils";
+
+function SearchPageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Sticky header: back + search only — no Navbar */}
+      <header
+        className="sticky top-0 z-30 shrink-0 border-b border-niat-border px-3 py-3 md:px-4"
+        style={{ backgroundColor: "var(--niat-navbar)" }}
+      >
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          <Link
+            href="/"
+            className="flex items-center justify-center rounded-lg p-2 text-niat-text-secondary hover:bg-niat-border/50 hover:text-niat-text touch-manipulation shrink-0"
+            aria-label="Back to home"
+          >
+            <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <SearchBar placeholder="Search posts..." className="w-full" />
+          </div>
+        </div>
+      </header>
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-3 py-4 md:px-4 md:py-6">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -50,11 +82,11 @@ function SearchContent() {
 
   return (
     <div className="space-y-6">
-      {/* Results Info & Filters */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="text-sm text-niat-text-secondary">
+      {/* Results info & filters — hidden on mobile: just list posts directly */}
+      <div className="hidden md:flex items-center justify-between flex-wrap gap-4">
+        <div className="text-sm text-niat-text-secondary flex items-center gap-2">
           {status === "pending" ? (
-            "Searching..."
+            <LoadingSpinner size="sm" className="shrink-0" />
           ) : status === "error" ? (
             <span className="text-primary">Search failed</span>
           ) : (
@@ -87,7 +119,7 @@ function SearchContent() {
         </button>
       </div>
 
-        {/* Filter Panel */}
+        {/* Filter Panel — desktop only */}
         {showFilters && (
           <div
             className="rounded-xl border border-niat-border p-4 space-y-4"
@@ -187,9 +219,7 @@ function SearchContent() {
 
       {/* Results */}
       {status === "pending" ? (
-        <div className="py-12 text-center text-niat-text-secondary">
-          Searching...
-        </div>
+        <LoadingBlock />
       ) : status === "error" ? (
         <div
           className="rounded-xl border border-niat-border p-8 text-center"
@@ -247,7 +277,14 @@ function SearchContent() {
             disabled={isFetchingNextPage}
             className="rounded-xl border border-niat-border bg-niat-section px-5 py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50 transition-colors"
           >
-            {isFetchingNextPage ? "Loading..." : "Load more"}
+            {isFetchingNextPage ? (
+              <span className="inline-flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                Load more
+              </span>
+            ) : (
+              "Load more"
+            )}
           </button>
         </div>
       )}
@@ -257,14 +294,12 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="py-12 text-center text-niat-text-secondary">
-          Loading search...
-        </div>
-      }
-    >
-      <SearchContent />
-    </Suspense>
+    <SearchPageShell>
+      <Suspense
+        fallback={<LoadingBlock />}
+      >
+        <SearchContent />
+      </Suspense>
+    </SearchPageShell>
   );
 }

@@ -16,6 +16,8 @@ interface CommentFormProps {
   postId: string;
   postSlug?: string | null;
   parentId?: string | null;
+  /** When replying, show "Replying to @username" and prefill body with @mention (Instagram-style). */
+  parentAuthorUsername?: string | null;
   onSuccess?: () => void;
   onCancel?: () => void;
   className?: string;
@@ -25,11 +27,13 @@ export function CommentForm({
   postId,
   postSlug = null,
   parentId = null,
+  parentAuthorUsername = null,
   onSuccess,
   onCancel,
   className,
 }: CommentFormProps) {
   const createComment = useCreateComment(postId, postSlug);
+  const mentionPrefix = parentAuthorUsername ? `@${parentAuthorUsername} ` : "";
   const {
     register,
     handleSubmit,
@@ -37,7 +41,7 @@ export function CommentForm({
     reset,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { body: "" },
+    defaultValues: { body: mentionPrefix },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -56,6 +60,11 @@ export function CommentForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={cn("space-y-2", className)}>
+      {parentId && parentAuthorUsername && (
+        <p className="text-xs text-niat-text-secondary">
+          Replying to <span className="font-medium text-niat-text">@{parentAuthorUsername}</span>
+        </p>
+      )}
       <textarea
         {...register("body")}
         placeholder={parentId ? "Write a reply..." : "Write a comment..."}

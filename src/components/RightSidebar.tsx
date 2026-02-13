@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export function RightSidebar() {
   return (
-    <aside className="hidden xl:block w-72 shrink-0 space-y-4">
+    <aside className="hidden xl:block w-72 shrink-0 min-h-0 overflow-y-auto scrollbar-hide space-y-4">
       <section className="rounded-2xl border border-niat-border bg-niat-section p-4 shadow-soft">
         <h3 className="text-sm font-semibold text-niat-text mb-3">Featured Seniors</h3>
         <p className="text-sm text-niat-text-secondary">

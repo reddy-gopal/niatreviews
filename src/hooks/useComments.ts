@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import api, { updateComment as updateCommentApi, deleteComment as deleteCommentApi } from "@/lib/api";
 import type { Comment, PaginatedComments } from "@/types/comment";
 import type { CommentWithReplies } from "@/lib/commentTree";
 import { buildCommentTree, recursiveSort } from "@/lib/commentTree";
@@ -100,6 +100,33 @@ export function useCreateComment(postId: string, postSlug?: string | null) {
       }
     },
     onSettled: () => {
+      if (postSlug) {
+        queryClient.invalidateQueries({ queryKey: ["comments", postSlug] });
+        queryClient.invalidateQueries({ queryKey: ["post", postSlug] });
+      }
+    },
+  });
+}
+
+export function useUpdateComment(postSlug: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: string }) =>
+      updateCommentApi(id, { body }),
+    onSuccess: () => {
+      if (postSlug) {
+        queryClient.invalidateQueries({ queryKey: ["comments", postSlug] });
+        queryClient.invalidateQueries({ queryKey: ["post", postSlug] });
+      }
+    },
+  });
+}
+
+export function useDeleteComment(postSlug: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCommentApi(id),
+    onSuccess: () => {
       if (postSlug) {
         queryClient.invalidateQueries({ queryKey: ["comments", postSlug] });
         queryClient.invalidateQueries({ queryKey: ["post", postSlug] });

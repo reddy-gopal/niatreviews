@@ -36,7 +36,15 @@
 }
 
 body {
-  @apply antialiased;
   background-color: var(--niat-section);
   color: var(--niat-text);
+}
+
+/* Hide scrollbar but keep scroll behavior */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

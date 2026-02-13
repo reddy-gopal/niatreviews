@@ -1,38 +1,60 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { usePostDetail } from "@/hooks/usePostDetail";
 import { UpvoteButton } from "@/components/UpvoteButton";
 import { usePostUpvote } from "@/hooks/useUpvote";
 import { CommentSection } from "@/components/CommentSection";
 import { useToast } from "@/components/Toast";
+import { fetchProfile } from "@/lib/api";
+import { deletePost } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { API_BASE } from "@/lib/utils";
-import { User, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { User, MessageCircle, Share2, Pencil, Trash2, MoreHorizontal, ArrowLeft } from "lucide-react";
+import { LoadingBlock } from "@/components/LoadingSpinner";
 
 export default function PostDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const postQuery = usePostDetail(slug);
   const { upvote, downvote, removeVote, isLoading } = usePostUpvote(slug);
   const { showLoginRequired } = useToast();
   const auth = isAuthenticated();
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: fetchProfile,
+    enabled: auth,
+  });
+  const post = postQuery.data;
+  const isAuthor = !!profile?.id && !!post?.author && (post.author as { id: string }).id === profile.id;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  if (postQuery.isLoading || postQuery.error) {
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [menuOpen]);
+
+  if (postQuery.isLoading || postQuery.error || !post) {
     return (
-      <div className="py-12 text-center text-niat-text-secondary">
+      <div className="py-12 text-center">
         {postQuery.error ? (
           <p className="text-primary">Failed to load post.</p>
         ) : (
-          <p>Loading…</p>
+          <LoadingBlock />
         )}
       </div>
     );
   }
-
-  const post = postQuery.data!;
   const upvoteCount = post.upvote_count ?? 0;
   const downvoteCount = post.downvote_count ?? 0;
   const score = upvoteCount - downvoteCount;
@@ -63,12 +85,25 @@ export default function PostDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Back button */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 rounded-lg p-2 text-niat-text-secondary hover:bg-niat-border/50 hover:text-niat-text transition-colors touch-manipulation"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+      </div>
+
       <article
-        className="rounded-2xl border border-niat-border p-4 sm:p-6 shadow-card"
+        className="rounded-2xl border border-niat-border p-4 sm:p-6 shadow-card overflow-visible"
         style={{ backgroundColor: "var(--niat-section)" }}
       >
-        {/* Profile row at top — links to user profile */}
-        <div className="mb-3">
+        {/* Profile row at top — links to user profile; author options menu */}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <Link
             href={profileUrl}
             className="inline-flex items-center gap-2 rounded-lg py-1 pr-2 -ml-1 text-sm text-niat-text-secondary hover:text-primary hover:bg-niat-border/30 transition-colors"
@@ -83,6 +118,51 @@ export default function PostDetailPage() {
               </time>
             </span>
           </Link>
+          {isAuthor && (
+            <div className="relative shrink-0" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="p-2 rounded-lg text-niat-text-secondary hover:bg-niat-border/50 hover:text-niat-text transition-colors"
+                aria-label="Post options"
+                aria-expanded={menuOpen}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+              {menuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-36 rounded-xl border border-niat-border py-1 shadow-card z-50"
+                  style={{ backgroundColor: "var(--niat-section)" }}
+                  role="menu"
+                >
+                  <Link
+                    href={`/posts/${slug}/edit`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-t-xl"
+                    role="menuitem"
+                  >
+                    <Pencil className="h-4 w-4" /> Edit
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (typeof window !== "undefined" && window.confirm("Delete this post? This cannot be undone.")) {
+                        deletePost(slug).then(() => {
+                          router.push("/");
+                          router.refresh();
+                        });
+                      }
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-niat-border/50 text-left rounded-b-xl"
+                    role="menuitem"
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <h1 className="text-2xl font-bold text-niat-text">{post.title}</h1>
@@ -150,14 +230,6 @@ export default function PostDetailPage() {
           >
             <Share2 className="h-5 w-5 shrink-0" aria-hidden />
             <span className="hidden sm:inline">Share</span>
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg p-2 sm:px-3 sm:py-1.5 text-sm font-medium text-niat-text-secondary hover:bg-niat-border/50 hover:text-niat-text transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 justify-center sm:justify-start"
-            aria-label="Save post"
-          >
-            <Bookmark className="h-5 w-5 shrink-0" aria-hidden />
-            <span className="hidden sm:inline">Save</span>
           </button>
         </div>
       </article>

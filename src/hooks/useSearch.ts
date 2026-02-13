@@ -59,16 +59,19 @@ export function useSearch(query: string, filters?: SearchFilters) {
   });
 }
 
+/** Max suggestions to fetch from API (desktop). Display count is capped by SearchBar per device. */
+const SUGGESTIONS_FETCH_LIMIT = 7;
+
 export function useSearchSuggestions(query: string, enabled = true) {
   return useQuery({
     queryKey: ["search-suggestions", query],
     queryFn: async () => {
       const { data } = await api.get<SearchSuggestion>("/search/suggestions/", {
-        params: { q: query, limit: 5 },
+        params: { q: query, limit: SUGGESTIONS_FETCH_LIMIT },
       });
       return data;
     },
-    enabled: enabled && query.trim().length >= 2,
+    enabled: enabled && query.trim().length >= 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

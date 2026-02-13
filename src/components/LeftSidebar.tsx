@@ -6,17 +6,17 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/categories", label: "Categories" },
-  { href: "/tags", label: "Tags" },
+  { href: "/search", label: "Search" },
   { href: "/trending", label: "Trending Posts" },
+  { href: "/categories", label: "Explore" },
 ];
 
 export function LeftSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:block w-56 shrink-0">
-      <nav className="sticky top-20 rounded-2xl bg-niat-section border border-niat-border p-3 shadow-soft">
+    <aside className="hidden lg:block w-56 shrink-0 min-h-0 overflow-y-auto scrollbar-hide">
+      <nav className="rounded-2xl bg-niat-section border border-niat-border p-3 shadow-soft">
         <ul className="space-y-0.5">
           {nav.map(({ href, label }) => (
             <li key={href}>

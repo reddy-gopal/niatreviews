@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { clearTokens, isAuthenticated } from "@/lib/auth";
 import {
@@ -10,21 +10,16 @@ import {
   Bell,
   User,
   ChevronDown,
-  Search,
   LogIn,
   UserPlus,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SearchBar } from "@/components/SearchBar";
 
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [auth, setAuth] = useState(false);
-  const [search, setSearch] = useState("");
-  const [logoError, setLogoError] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,12 +41,8 @@ export function Navbar() {
     window.location.href = "/";
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim()) {
-      router.push(`/?q=${encodeURIComponent(search.trim())}`);
-      setSearchOpen(false);
-    }
+  const handleSearch = (_query: string) => {
+    // Desktop SearchBar: optional callback after submit
   };
 
   return (
@@ -72,60 +63,18 @@ export function Navbar() {
             height={32}
             className="h-6 sm:h-7 md:h-8 w-auto object-contain"
           />
-          <span className="hidden sm:inline text-lg md:text-xl lg:text-2xl font-bold truncate">
-            NIATReviews
+          <span className="inline text-sm sm:text-lg md:text-xl lg:text-2xl font-bold truncate">
+            NIAT REVIEWS
           </span>
         </Link>
 
-        {/* Desktop search */}
-        <form
-          onSubmit={handleSearch}
-          className="flex-1 max-w-xl hidden md:block"
-        >
-          <input
-            type="search"
-            placeholder="Search posts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </form>
-
-        {/* Mobile search toggle + inline form when open */}
-        <div className="flex-1 flex items-center justify-end gap-1 md:hidden min-w-0">
-          {searchOpen ? (
-            <form onSubmit={handleSearch} className="flex-1 flex gap-1 min-w-0">
-              <input
-                type="search"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-                className="flex-1 min-w-0 rounded-lg border border-niat-border bg-niat-section px-2 py-1.5 text-sm text-niat-text placeholder-niat-text-secondary"
-              />
-              <button type="submit" className="rounded-lg bg-primary p-1.5 text-primary-foreground shrink-0" aria-label="Search">
-                <Search className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                className="rounded-lg border border-niat-border p-1.5 text-niat-text hover:bg-niat-border/30 shrink-0"
-                aria-label="Close search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="p-2 rounded-lg text-niat-text-secondary hover:bg-niat-border/30 hover:text-niat-text transition-colors touch-manipulation"
-              aria-label="Search"
-            >
-              <Search className="h-5 w-5" />
-            </button>
-          )}
+        {/* Desktop search with suggestions (single character triggers match) */}
+        <div className="flex-1 max-w-xl hidden md:block">
+          <SearchBar placeholder="Search posts..." onSearch={handleSearch} />
         </div>
+
+        {/* Spacer on mobile: search lives in bottom bar */}
+        <div className="flex-1 min-w-0 md:hidden" aria-hidden />
 
         <nav className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
           {auth ? (

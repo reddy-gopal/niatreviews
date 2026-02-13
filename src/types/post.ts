@@ -40,5 +40,7 @@ export interface Post {
 export interface PaginatedPosts {
   results: Post[];
   next: string | null;
-  previous: string | null;
+  previous?: string | null;
+  /** Total count (e.g. from search API). */
+  count?: number;
 }

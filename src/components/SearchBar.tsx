@@ -27,6 +27,16 @@ export function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Device-based cap: 7 on desktop, 5 on mobile (suggestions visible in dropdown)
+  const [maxVisible, setMaxVisible] = useState(7);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const update = () => setMaxVisible(mq.matches ? 5 : 7);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   // Debounce query for suggestions
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,7 +47,7 @@ export function SearchBar({
 
   const { data: suggestions } = useSearchSuggestions(
     debouncedQuery,
-    showSuggestions && debouncedQuery.length >= 2
+    showSuggestions && debouncedQuery.length >= 1
   );
   const { data: trending } = useTrendingSearches();
 
@@ -92,7 +102,7 @@ export function SearchBar({
 
   const showDropdown =
     showSuggestions &&
-    (debouncedQuery.length >= 2 || (trending && trending.length > 0));
+    (debouncedQuery.length >= 1 || (trending && trending.length > 0));
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
@@ -125,87 +135,60 @@ export function SearchBar({
           className="absolute top-full mt-2 w-full rounded-xl border border-niat-border shadow-card z-50 max-h-96 overflow-y-auto"
           style={{ backgroundColor: "var(--niat-section)" }}
         >
-          {/* Suggestions from query */}
-          {debouncedQuery.length >= 2 && suggestions && (
-            <>
-              {/* Posts */}
-              {suggestions.posts.length > 0 && (
-                <div className="p-2">
-                  <div className="px-3 py-2 text-xs font-semibold text-niat-text-secondary uppercase">
-                    Posts
-                  </div>
-                  {suggestions.posts.map((post) => (
-                    <button
-                      key={post.id}
-                      type="button"
-                      onClick={() => handleSuggestionClick(post.title, "post", post.slug)}
-                      className="w-full flex items-start gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg text-left"
-                    >
-                      <FileText className="h-4 w-4 text-niat-text-secondary shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{post.title}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Categories */}
-              {suggestions.categories.length > 0 && (
-                <div className={cn("p-2", suggestions.posts.length > 0 && "border-t border-niat-border")}>
-                  <div className="px-3 py-2 text-xs font-semibold text-niat-text-secondary uppercase">
-                    Categories
-                  </div>
-                  {suggestions.categories.map((cat) => (
-                    <button
-                      key={cat.slug}
-                      type="button"
-                      onClick={() => handleSuggestionClick(cat.name, "category", cat.slug)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg"
-                    >
-                      <Folder className="h-4 w-4 text-niat-text-secondary" />
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Tags */}
-              {suggestions.tags.length > 0 && (
-                <div className={cn("p-2", (suggestions.posts.length > 0 || suggestions.categories.length > 0) && "border-t border-niat-border")}>
-                  <div className="px-3 py-2 text-xs font-semibold text-niat-text-secondary uppercase">
-                    Tags
-                  </div>
-                  {suggestions.tags.map((tag) => (
-                    <button
-                      key={tag.slug}
-                      type="button"
-                      onClick={() => handleSuggestionClick(tag.name, "tag", tag.slug)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg"
-                    >
-                      <TagIcon className="h-4 w-4 text-niat-text-secondary" />
-                      {tag.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
+          {/* Suggestions: single flat list, no type labels (Posts / Categories / Tags) */}
+          {debouncedQuery.length >= 1 && suggestions && (
+            <div className="p-2">
+              {suggestions.posts.slice(0, maxVisible).map((post) => (
+                <button
+                  key={`post-${post.id}`}
+                  type="button"
+                  onClick={() => handleSuggestionClick(post.title, "post", post.slug)}
+                  className="w-full flex items-start gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg text-left"
+                >
+                  <FileText className="h-4 w-4 text-niat-text-secondary shrink-0 mt-0.5" />
+                  <span className="line-clamp-2">{post.title}</span>
+                </button>
+              ))}
+              {suggestions.categories.slice(0, maxVisible).map((cat) => (
+                <button
+                  key={`cat-${cat.slug}`}
+                  type="button"
+                  onClick={() => handleSuggestionClick(cat.name, "category", cat.slug)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg"
+                >
+                  <Folder className="h-4 w-4 text-niat-text-secondary shrink-0" />
+                  {cat.name}
+                </button>
+              ))}
+              {suggestions.tags.slice(0, maxVisible).map((tag) => (
+                <button
+                  key={`tag-${tag.slug}`}
+                  type="button"
+                  onClick={() => handleSuggestionClick(tag.name, "tag", tag.slug)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg"
+                >
+                  <TagIcon className="h-4 w-4 text-niat-text-secondary shrink-0" />
+                  {tag.name}
+                </button>
+              ))}
+            </div>
           )}
 
-          {/* Trending searches */}
-          {debouncedQuery.length < 2 && trending && trending.length > 0 && (
+          {/* Trending: flat list, no "Trending Topics" label */}
+          {debouncedQuery.length < 1 && trending && trending.length > 0 && (
             <div className="p-2">
-              <div className="px-3 py-2 text-xs font-semibold text-niat-text-secondary uppercase flex items-center gap-2">
-                <TrendingUp className="h-3 w-3" />
-                Trending Topics
-              </div>
               {trending.map((item) => (
                 <button
                   key={item.slug}
                   type="button"
                   onClick={() => handleTrendingClick(item.name)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 rounded-lg"
                 >
-                  <span>{item.name}</span>
-                  <span className="text-xs text-niat-text-secondary">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-niat-text-secondary shrink-0" />
+                    {item.name}
+                  </span>
+                  <span className="text-xs text-niat-text-secondary shrink-0">
                     {item.post_count} posts
                   </span>
                 </button>
@@ -214,7 +197,7 @@ export function SearchBar({
           )}
 
           {/* No results */}
-          {debouncedQuery.length >= 2 &&
+          {debouncedQuery.length >= 1 &&
             suggestions &&
             suggestions.posts.length === 0 &&
             suggestions.tags.length === 0 &&

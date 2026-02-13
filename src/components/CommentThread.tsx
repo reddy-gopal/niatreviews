@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import type { Comment } from "@/types/comment";
 import type { CommentWithReplies } from "@/lib/commentTree";
 import { buildCommentTree, getCommentSubtree } from "@/lib/commentTree";
 import { CommentItem } from "./CommentItem";
 import { useToast } from "./Toast";
 import { isAuthenticated } from "@/lib/auth";
+import { fetchProfile } from "@/lib/api";
 
 /** Show only this many replies inline before "more replies (x)". */
 export const INLINE_REPLY_LIMIT = 2;
@@ -49,6 +51,12 @@ export function CommentThread({
     : tree;
   const auth = isAuthenticated();
   const { showLoginRequired } = useToast();
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: fetchProfile,
+    enabled: auth,
+  });
+  const currentUserId = profile?.id ?? null;
 
   const replyLimit = focusCommentId ? 0 : INLINE_REPLY_LIMIT;
   const showFullReplies = !!focusCommentId;
@@ -63,6 +71,7 @@ export function CommentThread({
           postSlug={postSlug}
           depth={0}
           isAuthenticated={auth}
+          currentUserId={currentUserId}
           onLoginRequired={showLoginRequired}
           replyLimit={replyLimit}
           showFullReplies={showFullReplies}
