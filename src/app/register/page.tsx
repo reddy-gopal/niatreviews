@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AxiosError } from "axios";
-import { register as apiRegister, login } from "@/lib/api";
+import { register as apiRegister, login, fetchProfile } from "@/lib/api";
 import { setTokens } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 
 function getRegisterErrorMessage(err: unknown): string {
   if (err instanceof AxiosError && err.response?.data && typeof err.response.data === "object") {
@@ -40,6 +41,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") || "/";
+  const { setRoleFromProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
@@ -59,7 +61,11 @@ export default function RegisterPage() {
       });
       const { access, refresh } = await login(data.username, data.password);
       setTokens(access, refresh);
-      router.push(nextUrl.startsWith("/") ? nextUrl : "/");
+      const profile = await fetchProfile();
+      setRoleFromProfile(profile);
+      const target = nextUrl.startsWith("/") ? nextUrl : "/";
+      const redirect = target === "/" && profile.is_verified_senior ? "/dashboard" : target;
+      router.push(redirect);
       router.refresh();
     } catch (e) {
       setError(getRegisterErrorMessage(e));

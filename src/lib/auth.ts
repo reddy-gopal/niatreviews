@@ -1,5 +1,9 @@
 const ACCESS_KEY = "niat_access";
 const REFRESH_KEY = "niat_refresh";
+const ROLE_KEY = "niat_role";
+const USERNAME_KEY = "niat_username";
+
+export type UserRole = "senior" | "prospective";
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -21,6 +25,36 @@ export function clearTokens() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  clearStoredRole();
+}
+
+/** Role is set only at login (or app init when restoring session). */
+export function getStoredRole(): UserRole | null {
+  if (typeof window === "undefined") return null;
+  const v = sessionStorage.getItem(ROLE_KEY);
+  if (v === "senior" || v === "prospective") return v;
+  return null;
+}
+
+export function setStoredRole(role: UserRole): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(ROLE_KEY, role);
+}
+
+export function clearStoredRole(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(ROLE_KEY);
+  sessionStorage.removeItem(USERNAME_KEY);
+}
+
+export function getStoredUsername(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(USERNAME_KEY);
+}
+
+export function setStoredUsername(username: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(USERNAME_KEY, username);
 }
 
 export function isAuthenticated(): boolean {

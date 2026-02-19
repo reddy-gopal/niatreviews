@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { isAuthenticated } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 import { fetchProfile, getOnboardingStatus } from "@/lib/api";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
@@ -12,12 +13,13 @@ const ALLOWED_PATHS = ["/login", "/register", "/auth/magic", "/auth/setup", "/on
 /**
  * Redirects authenticated approved seniors who have not submitted
  * the onboarding review to /onboarding/review. Does not run for allowed paths.
- * Only requests onboarding status when user is a verified senior (no request for prospective/student).
+ * Uses role from context (set at login); only requests onboarding status when role is senior.
  */
 export function SeniorOnboardingGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const { role, isRoleReady } = useAuth();
 
   const isAllowedPath = pathname ? ALLOWED_PATHS.some((p) => pathname.startsWith(p)) : false;
   const shouldFetchProfile = mounted && !!pathname && !isAllowedPath && isAuthenticated();
@@ -29,8 +31,8 @@ export function SeniorOnboardingGuard({ children }: { children: React.ReactNode 
     staleTime: 5 * 60 * 1000,
   });
 
-  const isVerifiedSenior = profile?.is_verified_senior === true;
-  const shouldCheckOnboarding = shouldFetchProfile && isVerifiedSenior;
+  const isVerifiedSenior = role === "senior";
+  const shouldCheckOnboarding = shouldFetchProfile && isRoleReady && isVerifiedSenior;
 
   const { data: status, isPending, isSuccess, isError } = useQuery({
     queryKey: ["onboarding-status"],
@@ -61,6 +63,7 @@ export function SeniorOnboardingGuard({ children }: { children: React.ReactNode 
     !shouldFetchProfile ||
     profileError ||
     (shouldFetchProfile && profileLoaded && !isVerifiedSenior) ||
+    (shouldFetchProfile && isRoleReady && !isVerifiedSenior) ||
     isError ||
     (isSuccess && (status === null || status.review_submitted));
 

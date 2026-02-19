@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAskQuestion } from "@/hooks/useAskQuestion";
 import { isAuthenticated } from "@/lib/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { RichTextBodyEditor } from "@/components/RichTextBodyEditor";
 
@@ -14,6 +15,7 @@ const BODY_MAX = 5000;
 export default function AskPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { role } = useAuth();
   const qFromUrl = searchParams.get("q")?.trim() ?? "";
   const [title, setTitle] = useState(qFromUrl);
   const [body, setBody] = useState("");
@@ -28,8 +30,12 @@ export default function AskPage() {
   useEffect(() => {
     if (auth === false && typeof window !== "undefined") {
       router.replace("/login?next=/ask");
+      return;
     }
-  }, [auth, router]);
+    if (role === "senior") {
+      router.replace("/dashboard");
+    }
+  }, [auth, role, router]);
 
   const titleError =
     title.length > 0 && title.length < TITLE_MIN
@@ -59,6 +65,14 @@ export default function AskPage() {
         <p className="text-niat-text-secondary">
           {auth === false ? "Redirecting to login…" : "Checking authentication…"}
         </p>
+      </div>
+    );
+  }
+
+  if (role === "senior") {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center p-6">
+        <p className="text-niat-text-secondary">Redirecting to dashboard…</p>
       </div>
     );
   }

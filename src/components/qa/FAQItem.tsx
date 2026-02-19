@@ -18,8 +18,8 @@ interface FAQItemProps {
 export function FAQItem({ question }: FAQItemProps) {
   const [isOpen, setOpen] = useState(false);
   const auth = isAuthenticated();
-  const answer = question.answer;
-  const { upvote, downvote, removeUpvote, removeDownvote } = useAnswerVote(question.slug);
+  const answer = question.answers?.[0] ?? question.answer;
+  const { upvote, downvote, removeUpvote, removeDownvote } = useAnswerVote(question.slug, answer?.id ?? null);
   const { showLoginRequired } = useToast();
 
   return (
@@ -54,10 +54,12 @@ export function FAQItem({ question }: FAQItemProps) {
                 @{answer.author?.username ?? "unknown"}
                 {answer.author?.is_verified_senior && (
                   <span
-                    className="inline-flex items-center gap-1 text-xs font-medium"
-                    style={{ color: "var(--primary)" }}
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0"
+                    style={{ color: "var(--primary)", backgroundColor: "rgba(153, 27, 27, 0.12)" }}
+                    title="Verified Senior"
+                    aria-label="Verified Senior"
                   >
-                    <CheckCircle className="h-3.5 w-3.5" /> Verified Senior
+                    <CheckCircle className="h-3 w-3" />
                   </span>
                 )}
               </Link>

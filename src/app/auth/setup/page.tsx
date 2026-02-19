@@ -9,6 +9,7 @@ import { z } from "zod";
 import { AxiosError } from "axios";
 import { fetchProfile, seniorsSetup } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof AxiosError && err.response?.data && typeof err.response.data === "object") {
@@ -36,6 +37,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function AuthSetupPage() {
   const router = useRouter();
+  const { setRoleFromProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,10 +72,11 @@ export default function AuthSetupPage() {
     setIsSubmitting(true);
     try {
       const username = (data.username || "").trim();
-      await seniorsSetup({
+      const profile = await seniorsSetup({
         username: username || undefined,
         password: data.password,
       });
+      setRoleFromProfile(profile);
       router.replace("/onboarding/review");
       router.refresh();
     } catch (e) {

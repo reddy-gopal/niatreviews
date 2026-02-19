@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { User, CheckCircle, Pencil, Trash2 } from "lucide-react";
+import { User, CheckCircle, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import type { Answer } from "@/types/question";
 import { VoteButtons } from "./VoteButtons";
 import { useAnswerVote } from "@/hooks/useAnswerVote";
@@ -22,13 +22,15 @@ interface AnswerBlockProps {
 
 export function AnswerBlock({ answer, questionSlug }: AnswerBlockProps) {
   const auth = isAuthenticated();
-  const { upvote, downvote, removeUpvote, removeDownvote } = useAnswerVote(questionSlug);
+  const { upvote, downvote, removeUpvote, removeDownvote } = useAnswerVote(questionSlug, answer.id);
   const updateMutation = useUpdateAnswer(questionSlug);
   const deleteMutation = useDeleteAnswer(questionSlug);
   const { showLoginRequired, toast } = useToast();
   const { confirm } = useConfirm();
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(answer.body);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -49,7 +51,7 @@ export function AnswerBlock({ answer, questionSlug }: AnswerBlockProps) {
       return;
     }
     updateMutation.mutate(
-      { body: editBody.trim() },
+      { body: editBody.trim(), answerId: answer.id },
       {
         onSuccess: () => setEditing(false),
         onError: () => {},
@@ -58,6 +60,7 @@ export function AnswerBlock({ answer, questionSlug }: AnswerBlockProps) {
   };
 
   const handleDelete = () => {
+    setMenuOpen(false);
     confirm({
       title: "Delete this answer?",
       message: "This cannot be undone.",
@@ -65,7 +68,7 @@ export function AnswerBlock({ answer, questionSlug }: AnswerBlockProps) {
       cancelLabel: "Cancel",
       variant: "danger",
       onConfirm: () => {
-        deleteMutation.mutate(undefined, {
+        deleteMutation.mutate(answer.id, {
           onSuccess: () => toast.success("Answer deleted."),
           onError: () => toast.error("Could not delete answer."),
         });
@@ -73,16 +76,26 @@ export function AnswerBlock({ answer, questionSlug }: AnswerBlockProps) {
     });
   };
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <section aria-label="Answer" className="space-y-3 pt-4 border-t border-niat-border">
-      <h2 className="text-lg font-semibold text-niat-text">Answer</h2>
+    <section
+      aria-label="Answer"
+      className="pt-6 first:pt-0 border-t border-niat-border first:border-t-0"
+    >
       {editing ? (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <textarea
             value={editBody}
             onChange={(e) => setEditBody(e.target.value)}
             rows={6}
-            className="w-full rounded-xl border border-niat-border bg-[var(--niat-section)] px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full rounded-xl border border-niat-border bg-[var(--niat-section)] px-3 py-2.5 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Write your answer..."
           />
           <div className="flex gap-2">
@@ -105,61 +118,88 @@ export function AnswerBlock({ answer, questionSlug }: AnswerBlockProps) {
         </div>
       ) : (
         <>
-          <MarkdownBody content={answer.body} className="mt-1" />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
+          {/* Answer content with options at top-right */}
+          <div className="relative pr-8">
+            <div className="text-niat-text text-[15px] leading-relaxed">
+              <MarkdownBody content={answer.body} />
+            </div>
+            {isAuthor && (
+              <div className="absolute top-0 right-0" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((o) => !o)}
+                  className="p-1.5 rounded-lg text-niat-text-secondary hover:text-niat-text hover:bg-niat-border/50 transition-colors"
+                  aria-label="Answer options"
+                  aria-expanded={menuOpen}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+                {menuOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-1 py-1 min-w-[120px] rounded-lg border border-niat-border shadow-lg z-10"
+                    style={{ backgroundColor: "var(--niat-section)" }}
+                    role="menu"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { setMenuOpen(false); setEditing(true); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-niat-text hover:bg-niat-border/50 text-left"
+                    >
+                      <Pencil className="h-4 w-4 shrink-0" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-500/10 text-left"
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Meta row: author, date, votes — clear spacing */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-niat-text-secondary">
               <Link
                 href={`/users/${answer.author?.username ?? ""}`}
-                className="inline-flex items-center gap-1.5 text-sm text-niat-text-secondary hover:text-primary transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
               >
                 <User className="h-4 w-4 shrink-0" />
                 @{answer.author?.username ?? "unknown"}
                 {answer.author?.is_verified_senior && (
                   <span
-                    className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                    style={{ color: "var(--primary)", backgroundColor: "rgba(153, 27, 27, 0.1)" }}
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0"
+                    style={{ color: "var(--primary)", backgroundColor: "rgba(153, 27, 27, 0.12)" }}
+                    title="Verified Senior"
+                    aria-label="Verified Senior"
                   >
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Verified Senior
+                    <CheckCircle className="h-3 w-3" />
                   </span>
                 )}
               </Link>
-              <time dateTime={answer.created_at} className="text-sm text-niat-text-secondary">
+              <time dateTime={answer.created_at} className="shrink-0">
                 {createdDate}
               </time>
             </div>
-            <div className="flex items-center gap-2">
-              {isAuthor && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(true)}
-                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-niat-text-secondary hover:text-primary hover:bg-niat-border/50"
-                  >
-                    <Pencil className="h-4 w-4" /> Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
-                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-red-600 hover:bg-red-500/10"
-                  >
-                    <Trash2 className="h-4 w-4" /> Delete
-                  </button>
-                </>
-              )}
-              <VoteButtons
-                upvoteCount={answer.upvote_count ?? 0}
-                downvoteCount={answer.downvote_count ?? 0}
-                userVote={(answer.user_vote as 1 | -1 | null) ?? null}
-                onUpvote={upvote}
-                onDownvote={downvote}
-                onRemoveUpvote={removeUpvote}
-                onRemoveDownvote={removeDownvote}
-                onLoginRequired={showLoginRequired}
-                disabled={!auth}
-              />
-            </div>
+            <VoteButtons
+              upvoteCount={answer.upvote_count ?? 0}
+              downvoteCount={answer.downvote_count ?? 0}
+              userVote={(answer.user_vote as 1 | -1 | null) ?? null}
+              onUpvote={upvote}
+              onDownvote={downvote}
+              onRemoveUpvote={removeUpvote}
+              onRemoveDownvote={removeDownvote}
+              onLoginRequired={showLoginRequired}
+              disabled={!auth}
+            />
           </div>
         </>
       )}

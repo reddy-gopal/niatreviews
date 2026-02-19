@@ -232,39 +232,52 @@ export async function removeQuestionDownvote(slug: string): Promise<QuestionVote
   return data;
 }
 
-// --- Q&A: Answers ---
+// --- Q&A: Answers (multiple per question) ---
 
 export async function submitAnswer(slug: string, body: string): Promise<Answer> {
-  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answer/`, { body });
+  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answers/`, { body });
   return data;
 }
 
-export async function updateAnswer(slug: string, body: string): Promise<Answer> {
-  const { data } = await api.patch<Answer>(`/questions/${encodeURIComponent(slug)}/answer/`, { body });
+export async function updateAnswer(slug: string, answerId: string, body: string): Promise<Answer> {
+  const { data } = await api.patch<Answer>(
+    `/questions/${encodeURIComponent(slug)}/answers/${encodeURIComponent(answerId)}/`,
+    { body }
+  );
   return data;
 }
 
-export async function deleteAnswer(slug: string): Promise<void> {
-  await api.delete(`/questions/${encodeURIComponent(slug)}/answer/`);
+export async function deleteAnswer(slug: string, answerId: string): Promise<void> {
+  await api.delete(
+    `/questions/${encodeURIComponent(slug)}/answers/${encodeURIComponent(answerId)}/`
+  );
 }
 
-export async function upvoteAnswer(slug: string): Promise<Answer & { user_vote?: number | null }> {
-  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answer/upvote/`);
+export async function upvoteAnswer(slug: string, answerId: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.post<Answer>(
+    `/questions/${encodeURIComponent(slug)}/answers/${encodeURIComponent(answerId)}/upvote/`
+  );
   return data;
 }
 
-export async function downvoteAnswer(slug: string): Promise<Answer & { user_vote?: number | null }> {
-  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answer/downvote/`);
+export async function downvoteAnswer(slug: string, answerId: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.post<Answer>(
+    `/questions/${encodeURIComponent(slug)}/answers/${encodeURIComponent(answerId)}/downvote/`
+  );
   return data;
 }
 
-export async function removeAnswerUpvote(slug: string): Promise<Answer & { user_vote?: number | null }> {
-  const { data } = await api.delete<Answer>(`/questions/${encodeURIComponent(slug)}/answer/upvote/`);
+export async function removeAnswerUpvote(slug: string, answerId: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.delete<Answer>(
+    `/questions/${encodeURIComponent(slug)}/answers/${encodeURIComponent(answerId)}/upvote/`
+  );
   return data;
 }
 
-export async function removeAnswerDownvote(slug: string): Promise<Answer & { user_vote?: number | null }> {
-  const { data } = await api.delete<Answer>(`/questions/${encodeURIComponent(slug)}/answer/downvote/`);
+export async function removeAnswerDownvote(slug: string, answerId: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.delete<Answer>(
+    `/questions/${encodeURIComponent(slug)}/answers/${encodeURIComponent(answerId)}/downvote/`
+  );
   return data;
 }
 
@@ -444,7 +457,7 @@ export interface SeniorDashboardStats {
   my_answers: { total: number };
   pending_questions: Question[];
   follower_count: number;
-  recent_followups: (FollowUp & { question_slug?: string })[];
+  recent_followups: (FollowUp & { question_slug?: string; question_title?: string })[];
   answer_upvotes_total: number;
 }
 

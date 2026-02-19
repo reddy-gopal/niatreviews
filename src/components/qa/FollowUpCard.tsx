@@ -91,14 +91,12 @@ export function FollowUpCard({ followUp, questionSlug }: FollowUpCardProps) {
               </Link>
               {isSeniorReply && (
                 <span
-                  className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
-                  style={{
-                    color: "var(--primary)",
-                    backgroundColor: "rgba(153, 27, 27, 0.12)",
-                  }}
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0"
+                  style={{ color: "var(--primary)", backgroundColor: "rgba(153, 27, 27, 0.12)" }}
+                  title="Verified Senior"
+                  aria-label="Verified Senior"
                 >
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Verified Senior
+                  <CheckCircle className="h-3 w-3" />
                 </span>
               )}
               <span className="text-niat-text-secondary shrink-0">

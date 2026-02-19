@@ -7,12 +7,12 @@ import {
 } from "@/lib/api";
 import { useInvalidateQuestion } from "./useQuestionDetail";
 
-export function useAnswerVote(slug: string | null) {
+export function useAnswerVote(slug: string | null, answerId: string | null) {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateQuestion();
 
   const mutate = (fn: () => Promise<unknown>) => {
-    if (!slug) return Promise.reject(new Error("No slug"));
+    if (!slug || !answerId) return Promise.reject(new Error("No slug or answerId"));
     return fn().then(() => {
       invalidate(slug);
       queryClient.invalidateQueries({ queryKey: ["questions"] });
@@ -20,10 +20,10 @@ export function useAnswerVote(slug: string | null) {
     });
   };
 
-  const upvote = () => mutate(() => upvoteAnswer(slug!));
-  const downvote = () => mutate(() => downvoteAnswer(slug!));
-  const removeUpvote = () => mutate(() => removeAnswerUpvote(slug!));
-  const removeDownvote = () => mutate(() => removeAnswerDownvote(slug!));
+  const upvote = () => mutate(() => upvoteAnswer(slug!, answerId!));
+  const downvote = () => mutate(() => downvoteAnswer(slug!, answerId!));
+  const removeUpvote = () => mutate(() => removeAnswerUpvote(slug!, answerId!));
+  const removeDownvote = () => mutate(() => removeAnswerDownvote(slug!, answerId!));
 
   return { upvote, downvote, removeUpvote, removeDownvote };
 }

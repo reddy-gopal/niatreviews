@@ -29,7 +29,7 @@ export function QuestionDetail({ question, slug, isAuthor = false }: QuestionDet
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
-  const canEditDelete = isAuthor && !question.is_answered && !question.answer;
+  const canEditDelete = isAuthor && !question.is_answered;
   const createdDate = new Date(question.created_at).toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",

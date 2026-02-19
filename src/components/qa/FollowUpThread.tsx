@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle } from "lucide-react";
 import { useFollowUps, useCreateFollowUp } from "@/hooks/useFollowUps";
 import { FollowUpCard } from "./FollowUpCard";
 import { FollowUpThreadSkeleton } from "./FollowUpThreadSkeleton";
@@ -15,9 +14,6 @@ interface FollowUpThreadProps {
   hasAnswer: boolean;
   isQuestionAuthor: boolean;
 }
-
-const EMPTY_MESSAGE =
-  "No follow-ups yet. Students may ask clarifications once your answer helps them.";
 
 export function FollowUpThread({
   questionSlug,
@@ -50,21 +46,19 @@ export function FollowUpThread({
     return <FollowUpThreadSkeleton />;
   }
 
+  // Only show follow-ups section when at least one follow-up exists (prospective has raised one)
+  if (followUps.length === 0) {
+    return null;
+  }
+
   return (
     <section
       aria-label="Follow-up thread"
-      className="space-y-4 pt-6 border-t border-niat-border"
+      className="space-y-4 pt-8 border-t border-niat-border"
     >
-      <h2 className="text-lg font-semibold text-niat-text flex items-center gap-2">
-        <MessageCircle className="h-5 w-5" />
+      <h2 className="text-sm font-medium text-niat-text-secondary uppercase tracking-wide">
         Follow-ups
       </h2>
-
-      {followUps.length === 0 && !showAddForm && (
-        <p className="text-sm text-niat-text-secondary py-2">
-          {EMPTY_MESSAGE}
-        </p>
-      )}
 
       {showAddForm && (
         <form onSubmit={handleSubmit} className="space-y-2">
@@ -86,23 +80,15 @@ export function FollowUpThread({
         </form>
       )}
 
-      {followUps.length > 0 && (
-        <div className="space-y-3">
-          {followUps.map((fu) => (
-            <FollowUpCard
-              key={fu.id}
-              followUp={fu}
-              questionSlug={questionSlug}
-            />
-          ))}
-        </div>
-      )}
-
-      {followUps.length === 0 && showAddForm && (
-        <p className="text-sm text-niat-text-secondary py-1">
-          {EMPTY_MESSAGE}
-        </p>
-      )}
+      <div className="space-y-4">
+        {followUps.map((fu) => (
+          <FollowUpCard
+            key={fu.id}
+            followUp={fu}
+            questionSlug={questionSlug}
+          />
+        ))}
+      </div>
     </section>
   );
 }

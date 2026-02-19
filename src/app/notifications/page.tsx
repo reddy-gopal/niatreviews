@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, MessageCircle, ThumbsUp, FileText } from "lucide-react";
+import { Bell, CheckCheck, MessageCircle, FileText } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
 import {
   useNotifications,
@@ -28,10 +28,8 @@ function formatTime(iso: string) {
 
 function verbLabel(verb: string): string {
   const labels: Record<string, string> = {
-    comment_reply: "replied to your comment",
-    post_comment: "commented on your post",
-    upvote: "upvoted your post",
-    mention: "mentioned you",
+    "asked a question": "asked a question",
+    "answered your question": "answered your question",
   };
   return labels[verb] || verb.replace(/_/g, " ");
 }
@@ -115,9 +113,8 @@ export default function NotificationsPage() {
       ) : (
         <ul className="space-y-2">
           {notifications.map((n) => {
-            const isComment = n.verb?.includes("comment") ?? false;
             const hasTarget = !!n.target_url;
-            const clickable = isComment && hasTarget;
+            const clickable = hasTarget;
 
             const handleClick = () => {
               if (!clickable) return;
@@ -151,10 +148,8 @@ export default function NotificationsPage() {
               >
                 <div className="flex items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-niat-border/50 text-niat-text-secondary">
-                    {isComment ? (
+                    {n.verb === "asked a question" || n.verb === "answered your question" ? (
                       <MessageCircle className="h-4 w-4" />
-                    ) : n.verb?.includes("upvote") ? (
-                      <ThumbsUp className="h-4 w-4" />
                     ) : (
                       <FileText className="h-4 w-4" />
                     )}

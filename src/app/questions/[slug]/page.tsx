@@ -20,7 +20,11 @@ export default function QuestionDetailPage() {
     enabled: auth,
   });
   const isVerifiedSenior = profile?.is_verified_senior ?? false;
-  const hasAnswer = question?.answer != null;
+  const answers = question?.answers ?? [];
+  const hasAnswer = answers.length > 0;
+  const currentUserAlreadyAnswered =
+    !!profile?.username &&
+    answers.some((a) => (a.author as { username?: string })?.username === profile.username);
 
   if (!slug) {
     return (
@@ -68,11 +72,15 @@ export default function QuestionDetailPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         <QuestionDetail question={question} slug={slug} isAuthor={isAuthor} />
 
-        {hasAnswer && question.answer && (
-          <AnswerBlock answer={question.answer} questionSlug={slug} />
+        {answers.length > 0 && (
+          <div className="space-y-6">
+            {answers.map((answer) => (
+              <AnswerBlock key={answer.id} answer={answer} questionSlug={slug} />
+            ))}
+          </div>
         )}
 
-        {!hasAnswer && isVerifiedSenior && <AnswerForm questionSlug={slug} />}
+        {isVerifiedSenior && !currentUserAlreadyAnswered && <AnswerForm questionSlug={slug} />}
 
         {!hasAnswer && !isVerifiedSenior && (
           <div

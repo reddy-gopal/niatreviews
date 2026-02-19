@@ -28,13 +28,20 @@ export interface Question {
   faq_order?: number;
   created_at: string;
   updated_at?: string;
+  /** List of answers (detail view). */
+  answers?: Answer[];
+  /** First answer for list/card preview. */
   answer?: Answer | null;
+  /** Number of answers (list view). */
+  answer_count?: number;
   user_vote?: 1 | -1 | null;
   has_answer?: boolean;
 }
 
 export interface FAQ extends Question {
-  answer: Answer;
+  /** FAQs expose answers array; use first for display. */
+  answers: Answer[];
+  answer?: Answer | null;
   faq_order: number;
 }
 

@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageCircleQuestion, HelpCircle } from "lucide-react";
+import { LayoutDashboard, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/", label: "Home", icon: Home },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/questions", label: "Questions", icon: HelpCircle },
-  { href: "/ask", label: "Ask", icon: MessageCircleQuestion },
 ];
 
-export function MobileBottomBar() {
+export function SeniorMobileBottomBar() {
   const pathname = usePathname();
 
   const isProfileSection = pathname.startsWith("/profile");

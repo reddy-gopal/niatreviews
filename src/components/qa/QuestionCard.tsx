@@ -39,7 +39,7 @@ export function QuestionCard({ question }: QuestionCardProps) {
     enabled: auth,
   });
   const isAuthor = !!profile && !!question.author && question.author.username === profile.username;
-  const canEditDelete = isAuthor && !question.is_answered && !question.answer;
+  const canEditDelete = isAuthor && !question.is_answered;
 
   const deleteMutation = useDeleteQuestion(canEditDelete ? question.slug : null);
   const { toast } = useToast();
@@ -71,7 +71,9 @@ export function QuestionCard({ question }: QuestionCardProps) {
   };
 
   const answered = question.is_answered ?? question.has_answer;
-  const answerAuthor = question.answer?.author?.username;
+  const firstAnswer = question.answer ?? question.answers?.[0];
+  const answerAuthor = firstAnswer?.author?.username;
+  const answerCount = question.answer_count ?? (answered ? 1 : 0);
 
   return (
     <article
@@ -154,7 +156,8 @@ export function QuestionCard({ question }: QuestionCardProps) {
               <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium">
                 <CheckCircle className="h-3.5 w-3.5" />
                 Answered{answerAuthor ? ` by @${answerAuthor}` : ""}
-                {question.answer?.author?.is_verified_senior && " ✓"}
+                {answerCount > 1 ? ` and ${answerCount - 1} other${answerCount - 1 === 1 ? "" : "s"}` : ""}
+                {firstAnswer?.author?.is_verified_senior && " ✓"}
               </span>
             </>
           ) : (
@@ -168,9 +171,9 @@ export function QuestionCard({ question }: QuestionCardProps) {
           )}
         </div>
 
-        {answered && question.answer?.body && (
+        {answered && firstAnswer?.body && (
           <div className="mt-2 pl-1 border-l-2 border-niat-border">
-            <p className="text-sm text-niat-text-secondary line-clamp-3">{question.answer.body}</p>
+            <p className="text-sm text-niat-text-secondary line-clamp-3">{firstAnswer.body}</p>
           </div>
         )}
       </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { clearTokens, isAuthenticated } from "@/lib/auth";
+import { useUnreadCount } from "@/hooks/useNotifications";
 import {
   MessageCircleQuestion,
   Bell,
@@ -14,12 +14,15 @@ import {
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NavbarLogo } from "./NavbarLogo";
 
-export function Navbar() {
+export function ProspectiveNavbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [auth, setAuth] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { data: unreadData } = useUnreadCount();
+  const unreadCount = auth ? (unreadData?.count ?? 0) : 0;
 
   useEffect(() => {
     setAuth(isAuthenticated());
@@ -46,25 +49,8 @@ export function Navbar() {
         className="max-w-7xl mx-auto flex h-14 sm:h-16 md:h-20 items-center gap-2 sm:gap-4 px-3 sm:px-5 rounded-xl sm:rounded-2xl border border-niat-border shadow-soft"
         style={{ backgroundColor: "var(--niat-navbar)" }}
       >
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0"
-          style={{ color: "var(--primary)" }}
-        >
-          <Image
-            src="/logo.png"
-            alt=""
-            width={96}
-            height={32}
-            className="h-6 sm:h-7 md:h-8 w-auto object-contain"
-          />
-          <span className="inline text-sm sm:text-lg md:text-xl lg:text-2xl font-bold truncate">
-            NIAT REVIEWS
-          </span>
-        </Link>
-
+        <NavbarLogo />
         <div className="flex-1 min-w-0" aria-hidden />
-
         <nav className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
           {auth ? (
             <>
@@ -78,32 +64,38 @@ export function Navbar() {
                 title="Ask a question"
               >
                 <MessageCircleQuestion className="h-5 w-5 sm:h-4 sm:w-4 shrink-0" />
-                <span className="hidden sm:inline text-sm font-medium">
-                  Ask
-                </span>
+                <span className="hidden sm:inline text-sm font-medium">Ask</span>
               </Link>
               <Link
-            href="/questions"
-            className={cn(
-              "flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
-              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-2 text-sm font-medium",
-              pathname === "/questions" || pathname?.startsWith("/questions/") ? "text-primary" : ""
-            )}
-            aria-label="Questions"
-          >
-            Questions
-          </Link>
+                href="/questions"
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
+                  "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-2 text-sm font-medium",
+                  pathname === "/questions" || pathname?.startsWith("/questions/") ? "text-primary" : ""
+                )}
+                aria-label="Questions"
+              >
+                Questions
+              </Link>
               <Link
                 href="/notifications"
                 className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
+                  "relative flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
                   "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-2 sm:py-1.5"
                 )}
-                aria-label="Notifications"
-                title="Notifications"
+                aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
+                title={unreadCount > 0 ? `${unreadCount} unread` : "Notifications"}
               >
                 <Bell className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="hidden md:inline text-sm font-medium">Notifications</span>
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground"
+                    aria-hidden
+                  >
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
               <div className="relative" ref={ref}>
                 <button

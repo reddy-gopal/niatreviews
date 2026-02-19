@@ -1,11 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import { fetchProfile } from "@/lib/api";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getStoredUsername } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 import { HomeSearchConsole } from "@/components/HomeSearchConsole";
 import { FAQPreviewSection } from "@/components/FAQPreviewSection";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -15,16 +17,33 @@ function getTimeGreeting(): string {
 }
 
 export default function HomePage() {
-  const auth = isAuthenticated();
-  const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    queryFn: fetchProfile,
-    enabled: auth,
-  });
+  const router = useRouter();
+  const { role } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
-  const isLoggedIn = !!profile;
+  // Seniors land on dashboard; role is set only at login
+  useEffect(() => {
+    if (role === "senior") {
+      router.replace("/dashboard");
+    }
+  }, [role, router]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use auth only after mount to avoid hydration mismatch (server has no localStorage)
+  const auth = mounted && isAuthenticated();
   const greeting = getTimeGreeting();
-  const displayName = profile?.username ?? "there";
+  const displayName = auth ? (getStoredUsername() ?? "there") : "there";
+
+  if (role === "senior") {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-full">
@@ -43,9 +62,9 @@ export default function HomePage() {
           NIAT Reviews • Verified Seniors
         </span>
 
-        {/* Personalized heading: greeting for logged-in, engaging line for public */}
+        {/* Personalized heading: only use auth after mount to match server HTML and avoid hydration error */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight max-w-3xl flex items-center justify-center gap-2 flex-wrap leading-tight">
-          {isLoggedIn ? (
+          {auth ? (
             <>
               <Sparkles className="h-8 w-8 sm:h-9 sm:w-9 text-[var(--accent-1)] shrink-0" aria-hidden />
               <span>{greeting}, {displayName}</span>

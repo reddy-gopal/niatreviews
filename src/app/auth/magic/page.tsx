@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { magicLogin } from "@/lib/api";
+import { magicLogin, fetchProfile } from "@/lib/api";
 import { setTokens } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AuthMagicPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setRoleFromProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,15 +19,23 @@ export default function AuthMagicPage() {
       return;
     }
     magicLogin(token)
-      .then((res) => {
+      .then(async (res) => {
         setTokens(res.access, res.refresh);
-        router.replace(res.redirect);
+        const profile = await fetchProfile();
+        setRoleFromProfile(profile);
+        const redirect =
+          res.redirect && res.redirect !== "/"
+            ? res.redirect
+            : profile.is_verified_senior
+              ? "/dashboard"
+              : "/";
+        router.replace(redirect);
         router.refresh();
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Invalid or expired link.");
       });
-  }, [searchParams, router]);
+  }, [searchParams, router, setRoleFromProfile]);
 
   if (error) {
     return (

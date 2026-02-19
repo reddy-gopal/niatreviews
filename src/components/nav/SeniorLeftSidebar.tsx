@@ -5,12 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/", label: "Home" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/questions", label: "Questions" },
-  { href: "/ask", label: "Ask a Question" },
 ];
 
-export function LeftSidebar() {
+export function SeniorLeftSidebar() {
   const pathname = usePathname();
 
   return (
