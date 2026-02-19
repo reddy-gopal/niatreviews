@@ -2,12 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AxiosError } from "axios";
 import { register as apiRegister, login } from "@/lib/api";
 import { setTokens } from "@/lib/auth";
+
+function getRegisterErrorMessage(err: unknown): string {
+  if (err instanceof AxiosError && err.response?.data && typeof err.response.data === "object") {
+    const d = err.response.data as Record<string, unknown>;
+    if (Array.isArray(d.non_field_errors) && d.non_field_errors[0]) return String(d.non_field_errors[0]);
+    if (typeof d.detail === "string") return d.detail;
+    for (const v of Object.values(d)) {
+      if (Array.isArray(v) && v[0]) return String(v[0]);
+    }
+  }
+  return "Registration failed.";
+}
 
 const schema = z
   .object({
@@ -25,7 +38,10 @@ type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get("next") || "/";
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -34,6 +50,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     setError(null);
+    setIsSubmitting(true);
     try {
       await apiRegister({
         username: data.username,
@@ -42,18 +59,12 @@ export default function RegisterPage() {
       });
       const { access, refresh } = await login(data.username, data.password);
       setTokens(access, refresh);
-      router.push("/");
+      router.push(nextUrl.startsWith("/") ? nextUrl : "/");
       router.refresh();
-    } catch (e: unknown) {
-      const msg = e && typeof e === "object" && "response" in e
-        ? (e as { response?: { data?: Record<string, string[]> } }).response?.data
-        : null;
-      if (msg && typeof msg === "object") {
-        const first = Object.values(msg).flat()[0];
-        setError(first || "Registration failed.");
-      } else {
-        setError("Registration failed.");
-      }
+    } catch (e) {
+      setError(getRegisterErrorMessage(e));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -128,9 +139,10 @@ export default function RegisterPage() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          disabled={isSubmitting}
+          className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          Register
+          {isSubmitting ? "Creating account…" : "Register"}
         </button>
       </form>
       <p className="text-center text-sm text-niat-text-secondary">

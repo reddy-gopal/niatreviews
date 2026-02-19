@@ -12,8 +12,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "NIATReviews — Community",
-  description: "Community portal for prospective students",
+  title: "NIAT Q&A — Ask seniors, get answers",
+  description: "Prospective students ask questions. Verified NIAT seniors answer.",
 };
 
 export default function RootLayout({

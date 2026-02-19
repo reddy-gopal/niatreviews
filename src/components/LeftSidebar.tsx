@@ -6,9 +6,8 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/", label: "Home" },
-  { href: "/search", label: "Search" },
-  { href: "/trending", label: "Trending Posts" },
-  { href: "/categories", label: "Explore" },
+  { href: "/questions", label: "Questions" },
+  { href: "/ask", label: "Ask a Question" },
 ];
 
 export function LeftSidebar() {

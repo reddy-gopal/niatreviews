@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AxiosError } from "axios";
 import { login } from "@/lib/api";
 import { setTokens } from "@/lib/auth";
+
+function getAuthErrorMessage(err: unknown): string {
+  if (err instanceof AxiosError && err.response?.data && typeof err.response.data === "object") {
+    const d = err.response.data as Record<string, unknown>;
+    if (Array.isArray(d.non_field_errors) && d.non_field_errors[0]) return String(d.non_field_errors[0]);
+    if (typeof d.detail === "string") return d.detail;
+  }
+  return "Invalid username or password.";
+}
 
 const schema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -18,7 +28,10 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get("next") || "/";
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -27,13 +40,16 @@ export default function LoginPage() {
 
   const onSubmit = async (data: FormData) => {
     setError(null);
+    setIsSubmitting(true);
     try {
       const { access, refresh } = await login(data.username, data.password);
       setTokens(access, refresh);
-      router.push("/");
+      router.push(nextUrl.startsWith("/") ? nextUrl : "/");
       router.refresh();
-    } catch {
-      setError("Invalid username or password.");
+    } catch (e) {
+      setError(getAuthErrorMessage(e));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -78,9 +94,10 @@ export default function LoginPage() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          disabled={isSubmitting}
+          className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          Log in
+          {isSubmitting ? "Signing in…" : "Log in"}
         </button>
       </form>
       <p className="text-center text-sm text-niat-text-secondary">

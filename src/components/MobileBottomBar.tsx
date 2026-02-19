@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, TrendingUp, Search } from "lucide-react";
+import { Home, MessageCircleQuestion, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/trending", label: "Trending", icon: TrendingUp },
-  { href: "/categories", label: "Explore", icon: Compass },
+  { href: "/questions", label: "Questions", icon: HelpCircle },
+  { href: "/ask", label: "Ask", icon: MessageCircleQuestion },
 ];
 
 export function MobileBottomBar() {

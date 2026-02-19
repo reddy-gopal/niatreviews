@@ -14,7 +14,6 @@ import {
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SearchBar } from "@/components/SearchBar";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -41,10 +40,6 @@ export function Navbar() {
     window.location.href = "/";
   };
 
-  const handleSearch = (_query: string) => {
-    // Desktop SearchBar: optional callback after submit
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-3 sm:pt-3">
       <div
@@ -68,31 +63,36 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop search with suggestions (single character triggers match) */}
-        <div className="flex-1 max-w-xl hidden md:block">
-          <SearchBar placeholder="Search posts..." onSearch={handleSearch} />
-        </div>
-
-        {/* Spacer on mobile: search lives in bottom bar */}
-        <div className="flex-1 min-w-0 md:hidden" aria-hidden />
+        <div className="flex-1 min-w-0" aria-hidden />
 
         <nav className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
           {auth ? (
             <>
               <Link
-                href="/create-post"
+                href="/ask"
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity",
                   "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-4 sm:py-2 sm:pl-3 sm:pr-4"
                 )}
-                aria-label="Ask me a Question"
-                title="Ask me a Question"
+                aria-label="Ask a question"
+                title="Ask a question"
               >
                 <MessageCircleQuestion className="h-5 w-5 sm:h-4 sm:w-4 shrink-0" />
                 <span className="hidden sm:inline text-sm font-medium">
-                  Ask me a Question ??
+                  Ask
                 </span>
               </Link>
+              <Link
+            href="/questions"
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-2 text-sm font-medium",
+              pathname === "/questions" || pathname?.startsWith("/questions/") ? "text-primary" : ""
+            )}
+            aria-label="Questions"
+          >
+            Questions
+          </Link>
               <Link
                 href="/notifications"
                 className={cn(

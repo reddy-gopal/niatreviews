@@ -76,14 +76,17 @@ export interface Profile {
   is_verified_senior: boolean;
   phone_number: string | null;
   phone_verified: boolean;
+  needs_password_set?: boolean;
 }
 
-/** Public profile (by username) – no email/phone. */
+/** Public profile (by username) – no email/phone. For seniors includes follower_count, is_followed_by_me. */
 export interface PublicProfile {
   id: string;
   username: string;
   role: string;
   is_verified_senior: boolean;
+  follower_count?: number;
+  is_followed_by_me?: boolean | null;
 }
 
 export async function fetchProfile(): Promise<Profile> {
@@ -102,12 +105,19 @@ export async function updateProfile(payload: { email?: string; phone_number?: st
   return data;
 }
 
+/** First-time setup for approved seniors (set username and password after magic link). */
+export async function seniorsSetup(payload: { username?: string; password: string }): Promise<Profile> {
+  const { data } = await api.patch<Profile>("/auth/me/", payload);
+  return data;
+}
+
 // --- Magic login (seniors) ---
 
 export interface MagicLoginResponse {
   access: string;
   refresh: string;
   redirect: string;
+  needs_password_set?: boolean;
 }
 
 export async function magicLogin(token: string): Promise<MagicLoginResponse> {
@@ -160,42 +170,138 @@ export async function submitOnboardingReview(payload: OnboardingReviewPayload): 
   return data;
 }
 
-// --- Posts (author update/delete) ---
+// --- Q&A: Questions ---
 
-export async function updatePost(
-  slug: string,
-  payload: { title?: string; description?: string; category?: string | null; tag_ids?: string[]; image?: File | null }
-): Promise<unknown> {
-  const isMultipart = payload.image != null;
-  if (isMultipart) {
-    const formData = new FormData();
-    if (payload.title != null) formData.append("title", payload.title);
-    if (payload.description != null) formData.append("description", payload.description);
-    if (payload.category != null) formData.append("category", payload.category);
-    if (payload.tag_ids?.length) payload.tag_ids.forEach((id) => formData.append("tag_ids", id));
-    if (payload.image) formData.append("image", payload.image);
-    const { data } = await api.patch(`/posts/${encodeURIComponent(slug)}/`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data;
-  }
-  const { data } = await api.patch(`/posts/${encodeURIComponent(slug)}/`, payload);
+import type { Question, Answer, PaginatedQuestions } from "@/types/question";
+
+export type { Question };
+
+export interface QuestionVoteResponse {
+  upvote_count: number;
+  downvote_count: number;
+  user_vote: number | null;
+}
+
+export async function getQuestions(params: {
+  cursor?: string;
+  answered?: "true" | "false";
+  author?: string;
+  answer_author?: string;
+  category?: string;
+}): Promise<PaginatedQuestions> {
+  const { data } = await api.get<PaginatedQuestions>("/questions/", { params });
   return data;
 }
 
-export async function deletePost(slug: string): Promise<void> {
-  await api.delete(`/posts/${encodeURIComponent(slug)}/`);
-}
-
-// --- Comments (author update/delete) ---
-
-export async function updateComment(id: string, payload: { body: string }): Promise<unknown> {
-  const { data } = await api.patch(`/comments/${id}/`, payload);
+export async function getQuestionDetail(slug: string): Promise<Question> {
+  const { data } = await api.get<Question>(`/questions/${encodeURIComponent(slug)}/`);
   return data;
 }
 
-export async function deleteComment(id: string): Promise<void> {
-  await api.delete(`/comments/${id}/`);
+export async function createQuestion(payload: { title: string; body?: string }): Promise<Question> {
+  const { data } = await api.post<Question>("/questions/", payload);
+  return data;
+}
+
+export async function updateQuestion(slug: string, payload: { title?: string; body?: string }): Promise<Question> {
+  const { data } = await api.patch<Question>(`/questions/${encodeURIComponent(slug)}/`, payload);
+  return data;
+}
+
+export async function deleteQuestion(slug: string): Promise<void> {
+  await api.delete(`/questions/${encodeURIComponent(slug)}/`);
+}
+
+export async function upvoteQuestion(slug: string): Promise<QuestionVoteResponse> {
+  const { data } = await api.post<QuestionVoteResponse>(`/questions/${encodeURIComponent(slug)}/upvote/`);
+  return data;
+}
+
+export async function downvoteQuestion(slug: string): Promise<QuestionVoteResponse> {
+  const { data } = await api.post<QuestionVoteResponse>(`/questions/${encodeURIComponent(slug)}/downvote/`);
+  return data;
+}
+
+export async function removeQuestionUpvote(slug: string): Promise<QuestionVoteResponse> {
+  const { data } = await api.delete<QuestionVoteResponse>(`/questions/${encodeURIComponent(slug)}/upvote/`);
+  return data;
+}
+
+export async function removeQuestionDownvote(slug: string): Promise<QuestionVoteResponse> {
+  const { data } = await api.delete<QuestionVoteResponse>(`/questions/${encodeURIComponent(slug)}/downvote/`);
+  return data;
+}
+
+// --- Q&A: Answers ---
+
+export async function submitAnswer(slug: string, body: string): Promise<Answer> {
+  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answer/`, { body });
+  return data;
+}
+
+export async function updateAnswer(slug: string, body: string): Promise<Answer> {
+  const { data } = await api.patch<Answer>(`/questions/${encodeURIComponent(slug)}/answer/`, { body });
+  return data;
+}
+
+export async function deleteAnswer(slug: string): Promise<void> {
+  await api.delete(`/questions/${encodeURIComponent(slug)}/answer/`);
+}
+
+export async function upvoteAnswer(slug: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answer/upvote/`);
+  return data;
+}
+
+export async function downvoteAnswer(slug: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.post<Answer>(`/questions/${encodeURIComponent(slug)}/answer/downvote/`);
+  return data;
+}
+
+export async function removeAnswerUpvote(slug: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.delete<Answer>(`/questions/${encodeURIComponent(slug)}/answer/upvote/`);
+  return data;
+}
+
+export async function removeAnswerDownvote(slug: string): Promise<Answer & { user_vote?: number | null }> {
+  const { data } = await api.delete<Answer>(`/questions/${encodeURIComponent(slug)}/answer/downvote/`);
+  return data;
+}
+
+// --- FAQs ---
+
+export async function getFAQs(): Promise<Question[]> {
+  const { data } = await api.get<Question[]>("/faqs/");
+  return data;
+}
+
+// --- Question categories (from backend classifier) ---
+
+/** List of question categories for filters; comes from backend only. */
+export async function getQuestionCategories(): Promise<string[]> {
+  const { data } = await api.get<{ categories: string[] }>("/questions/categories/");
+  return data.categories ?? [];
+}
+
+// --- Question search (GET /api/questions/search/ and /suggestions/) ---
+
+/** Search questions by full-text query. Uses backend FTS (SQLite FTS5 / PostgreSQL). */
+export async function searchQuestions(params: {
+  q: string;
+  cursor?: string;
+  order_by?: "-rank" | "-created_at" | "-upvote_count";
+}): Promise<PaginatedQuestions> {
+  const { data } = await api.get<PaginatedQuestions>("/questions/search/", { params });
+  return data;
+}
+
+/** Get search suggestions for typeahead. Same backend search API, limited results. */
+export async function getSearchSuggestions(q: string): Promise<Question[]> {
+  if (!q.trim()) return [];
+  const { data } = await api.get<Question[]>("/questions/search/suggestions/", {
+    params: { q: q.trim() },
+  });
+  return data;
 }
 
 // --- Notifications ---
@@ -247,5 +353,102 @@ export async function markNotificationRead(id: string): Promise<NotificationItem
 
 export async function markAllNotificationsRead(): Promise<{ marked: number }> {
   const { data } = await api.post<{ marked: number }>("/notifications/mark_all_read/");
+  return data;
+}
+
+// --- Follow-ups (question thread) ---
+
+export interface FollowUpAuthor {
+  id: string;
+  username: string;
+  is_verified_senior: boolean;
+}
+
+export interface FollowUp {
+  id: string;
+  author: FollowUpAuthor;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export interface PaginatedFollowUps {
+  next: string | null;
+  previous: string | null;
+  results: FollowUp[];
+}
+
+export async function getFollowUps(slug: string, cursor?: string): Promise<PaginatedFollowUps> {
+  const params = cursor ? { cursor } : {};
+  const { data } = await api.get<PaginatedFollowUps>(
+    `/questions/${encodeURIComponent(slug)}/followups/`,
+    { params }
+  );
+  return data;
+}
+
+export async function createFollowUp(slug: string, body: string): Promise<FollowUp> {
+  const { data } = await api.post<FollowUp>(
+    `/questions/${encodeURIComponent(slug)}/followups/`,
+    { body }
+  );
+  return data;
+}
+
+export async function updateFollowUp(
+  slug: string,
+  id: string,
+  body: string
+): Promise<FollowUp> {
+  const { data } = await api.patch<FollowUp>(
+    `/questions/${encodeURIComponent(slug)}/followups/${encodeURIComponent(id)}/`,
+    { body }
+  );
+  return data;
+}
+
+export async function deleteFollowUp(slug: string, id: string): Promise<void> {
+  await api.delete(
+    `/questions/${encodeURIComponent(slug)}/followups/${encodeURIComponent(id)}/`
+  );
+}
+
+// --- Senior follow / unfollow ---
+
+export interface FollowResponse {
+  followed: boolean;
+  follower_count: number;
+}
+
+export async function followSenior(seniorId: string): Promise<FollowResponse> {
+  const { data } = await api.post<FollowResponse>(`/seniors/${encodeURIComponent(seniorId)}/follow/`);
+  return data;
+}
+
+export async function unfollowSenior(seniorId: string): Promise<FollowResponse> {
+  const { data } = await api.delete<FollowResponse>(`/seniors/${encodeURIComponent(seniorId)}/follow/`);
+  return data;
+}
+
+export async function getSeniorsList(search?: string): Promise<PublicProfile[]> {
+  const params = search?.trim() ? { search: search.trim() } : {};
+  const { data } = await api.get<PublicProfile[]>("/seniors/", { params });
+  return data;
+}
+
+// --- Senior dashboard ---
+
+export interface SeniorDashboardStats {
+  my_answers: { total: number };
+  pending_questions: Question[];
+  follower_count: number;
+  recent_followups: (FollowUp & { question_slug?: string })[];
+  answer_upvotes_total: number;
+}
+
+export async function getSeniorDashboard(): Promise<SeniorDashboardStats> {
+  const { data } = await api.get<SeniorDashboardStats>("/dashboard/senior/");
   return data;
 }

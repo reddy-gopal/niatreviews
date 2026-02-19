@@ -26,3 +26,9 @@ export function clearTokens() {
 export function isAuthenticated(): boolean {
   return !!getAccessToken();
 }
+
+/** Return URL to login with a return path so after login user is sent to that path. */
+export function getLoginUrl(returnPath: string): string {
+  const path = returnPath.startsWith("/") ? returnPath : `/${returnPath}`;
+  return `/login?next=${encodeURIComponent(path)}`;
+}

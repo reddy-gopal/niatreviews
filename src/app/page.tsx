@@ -1,158 +1,82 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { usePosts } from "@/hooks/usePosts";
-import { PostCard } from "@/components/PostCard";
-import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
-import { isAuthenticated } from "@/lib/auth";
+import { Sparkles } from "lucide-react";
 import { fetchProfile } from "@/lib/api";
+import { isAuthenticated } from "@/lib/auth";
+import { HomeSearchConsole } from "@/components/HomeSearchConsole";
+import { FAQPreviewSection } from "@/components/FAQPreviewSection";
 
-function getGreeting() {
-  const hour = typeof window !== "undefined" ? new Date().getHours() : 12;
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
 
 export default function HomePage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const q = searchParams.get("q");
   const auth = isAuthenticated();
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: fetchProfile,
-    enabled: typeof window !== "undefined" && auth,
+    enabled: auth,
   });
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && q?.trim()) {
-      router.replace(`/search?q=${encodeURIComponent(q.trim())}`);
-    }
-  }, [q, router]);
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, error } =
-    usePosts();
-
-  if (typeof window !== "undefined" && q?.trim()) {
-    return <LoadingBlock />;
-  }
-
-  if (status === "pending") {
-    return <LoadingBlock />;
-  }
-  if (status === "error") {
-    return (
-      <div className="py-12 text-center text-primary">
-        Failed to load posts. {error?.message}
-      </div>
-    );
-  }
-
-  const posts = data?.pages.flatMap((p) => p.results) ?? [];
-  const displayName = profile?.username ?? profile?.email?.split("@")[0] ?? null;
-  const greeting = getGreeting();
-
-  const heroContent = auth && displayName
-    ? {
-        heading: `${greeting}, ${displayName}!`,
-        subtext: "What’s on your mind? Ask the community and get answers from verified NIAT seniors.",
-        cta: "Ask a question",
-        ctaHref: "/create-post",
-      }
-    : auth
-      ? {
-          heading: "Welcome to NIAT Community",
-          subtext: "Ask questions, get answers from verified seniors, and connect with others.",
-          cta: "Create post",
-          ctaHref: "/create-post",
-        }
-      : {
-          heading: "Real answers from real NIAT seniors",
-          subtext: "Prospective students ask. Verified seniors answer. Join the community and get the inside track.",
-          cta: "Join the community",
-          ctaHref: "/register",
-          secondaryCta: "Explore posts",
-          secondaryHref: "#feed",
-        };
+  const isLoggedIn = !!profile;
+  const greeting = getTimeGreeting();
+  const displayName = profile?.username ?? "there";
 
   return (
-    <div className="space-y-6">
-      {/* Hero Banner — personalized */}
+    <div className="flex flex-col min-h-full">
+      {/* Centered hero: full viewport, dark background (NIAT palette) */}
       <section
-        className="rounded-2xl overflow-hidden shadow-card"
+        className="flex flex-col items-center justify-center min-h-[85vh] sm:min-h-[88vh] px-4 py-12 text-center"
         style={{
-          background: "linear-gradient(135deg, #220000 0%, #974039 100%)",
+          background: "linear-gradient(180deg, var(--hero-from) 0%, var(--hero-to) 100%)",
         }}
       >
-        <div className="px-6 py-10 sm:px-8 sm:py-14 text-white">
-          <h1 className="text-2xl sm:text-3xl font-bold">
-            {heroContent.heading}
-          </h1>
-          <p className="mt-2 text-white/90 text-sm sm:text-base max-w-xl">
-            {heroContent.subtext}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link
-              href={heroContent.ctaHref}
-              className="inline-block rounded-xl bg-accent-1 px-4 py-2.5 text-sm font-semibold text-niat-text hover:opacity-90 transition-opacity"
-            >
-              {heroContent.cta}
-            </Link>
-            {"secondaryCta" in heroContent && (heroContent.secondaryCta && (
-              <Link
-                href={"secondaryHref" in heroContent ? heroContent.secondaryHref ?? "/" : "/"}
-                className="inline-block rounded-xl border-2 border-white/60 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
-              >
-                {heroContent.secondaryCta}
-              </Link>
-            ))}
-          </div>
+        {/* Top badge */}
+        <span
+          className="inline-block rounded-full px-3 py-1 text-xs font-medium text-white/90 border border-white/20 mb-6"
+          style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+        >
+          NIAT Reviews • Verified Seniors
+        </span>
+
+        {/* Personalized heading: greeting for logged-in, engaging line for public */}
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight max-w-3xl flex items-center justify-center gap-2 flex-wrap leading-tight">
+          {isLoggedIn ? (
+            <>
+              <Sparkles className="h-8 w-8 sm:h-9 sm:w-9 text-[var(--accent-1)] shrink-0" aria-hidden />
+              <span>{greeting}, {displayName}</span>
+            </>
+          ) : (
+            <>
+              <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent">
+                Real NIAT experiences.
+              </span>
+              <br className="sm:hidden" />
+              <span className="text-[var(--accent-1)]">Real answers.</span>
+            </>
+          )}
+        </h1>
+        <p className="mt-4 text-base sm:text-lg text-white/85 max-w-xl font-medium tracking-tight">
+          Ask anything — placements, hostel, fees, campus life. Answers from verified NIAT seniors who&apos;ve been there.
+        </p>
+
+        {/* Search console (Claude-like, no search icon) */}
+        <div className="mt-8 w-full">
+          <HomeSearchConsole />
         </div>
       </section>
 
-      {/* Feed */}
-      <div id="feed" className="space-y-4">
-        {posts.length === 0 ? (
-          <div
-            className="rounded-2xl border border-niat-border p-8 text-center shadow-soft"
-            style={{ backgroundColor: "var(--niat-section)" }}
-          >
-            <p className="text-niat-text-secondary">No posts yet. Be the first to create one!</p>
-            <Link
-              href="/create-post"
-              className="mt-3 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Create post
-            </Link>
-          </div>
-        ) : (
-          posts.map((post) => <PostCard key={post.id} post={post} />)
-        )}
-      </div>
-
-      {hasNextPage && (
-        <div className="flex justify-center py-4">
-          <button
-            type="button"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-            className="rounded-xl border border-niat-border bg-niat-section px-5 py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50 transition-colors"
-          >
-            {isFetchingNextPage ? (
-              <span className="inline-flex items-center gap-2">
-                <LoadingSpinner size="sm" />
-                Load more
-              </span>
-            ) : (
-              "Load more"
-            )}
-          </button>
-        </div>
-      )}
+      {/* FAQ section — light background, below hero */}
+      <section
+        className="flex-1 pt-10"
+        style={{ backgroundColor: "var(--niat-section)" }}
+      >
+        <FAQPreviewSection maxItems={8} />
+      </section>
     </div>
   );
 }

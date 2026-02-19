@@ -12,18 +12,16 @@ import {
   EmptyState,
 } from "@/components/profile";
 import type { ProfileTabId, TabItem } from "@/components/profile";
-import { usePosts } from "@/hooks/usePosts";
-import { useCommentsList } from "@/hooks/useProfileData";
-import { PostCard } from "@/components/PostCard";
+import { useQuestions } from "@/hooks/useQuestions";
+import { QuestionCard } from "@/components/qa";
 import { LoadingBlock, LoadingSpinner } from "@/components/LoadingSpinner";
-import { cn } from "@/lib/utils";
 
-const PROFILE_TABS: TabItem[] = [
+const BASE_TABS: TabItem[] = [
   { id: "overview", label: "Overview" },
-  { id: "posts", label: "Posts" },
-  { id: "comments", label: "Comments" },
-  { id: "upvoted", label: "Upvoted" },
+  { id: "questions", label: "My Questions" },
 ];
+
+const SENIOR_ANSWERS_TAB: TabItem = { id: "answers", label: "My Answers" };
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -35,22 +33,32 @@ export default function ProfilePage() {
     enabled: typeof window !== "undefined" && isAuthenticated(),
   });
 
-  const authorId = profile?.id ?? null;
-  const postsQuery = usePosts({ author: authorId });
-  const upvotedPostsQuery = usePosts({ upvotedBy: authorId ? "me" : null });
-  const commentsQuery = useCommentsList({ author: authorId });
-  const upvotedCommentsQuery = useCommentsList({ upvotedBy: authorId ? "me" : null });
+  const isVerifiedSenior = profile?.is_verified_senior ?? false;
+  const profileTabs = isVerifiedSenior
+    ? [...BASE_TABS, SENIOR_ANSWERS_TAB]
+    : BASE_TABS;
 
-  const posts = postsQuery.data?.pages.flatMap((p) => p.results) ?? [];
-  const upvotedPosts = upvotedPostsQuery.data?.pages.flatMap((p) => p.results) ?? [];
-  const comments = commentsQuery.data?.pages.flatMap((p) => p.results) ?? [];
-  const upvotedComments = upvotedCommentsQuery.data?.pages.flatMap((p) => p.results) ?? [];
+  const authorId = profile?.id ?? null;
+  const myQuestionsQuery = useQuestions({ author: authorId ?? undefined });
+  const myAnswersQuery = useQuestions({
+    answerAuthor: authorId ?? undefined,
+    enabled: !!authorId && isVerifiedSenior,
+  });
+
+  const myQuestions = myQuestionsQuery.data?.pages.flatMap((p) => p.results) ?? [];
+  const myAnswers = myAnswersQuery.data?.pages.flatMap((p) => p.results) ?? [];
 
   useEffect(() => {
     if (typeof window !== "undefined" && !isAuthenticated()) {
       router.replace("/login");
     }
   }, [router]);
+
+  useEffect(() => {
+    if (activeTab === "answers" && !isVerifiedSenior) {
+      setActiveTab("overview");
+    }
+  }, [activeTab, isVerifiedSenior]);
 
   const handleEditProfile = () => router.push("/profile/settings");
 
@@ -80,15 +88,15 @@ export default function ProfilePage() {
   const renderTabContent = () => {
     switch (activeTab) {
       case "overview": {
-        const hasPosts = posts.length > 0;
-        const hasComments = comments.length > 0;
-        if (!hasPosts && !hasComments) {
+        const hasQuestions = myQuestions.length > 0;
+        const hasAnswers = myAnswers.length > 0;
+        if (!hasQuestions && !hasAnswers) {
           return (
             <EmptyState
-              title="You don't have any posts yet"
-              description="Share your first post with the community to get started."
-              actionLabel="Create Post"
-              onAction={() => router.push("/create-post")}
+              title="You haven't asked any questions yet"
+              description="Ask your first question and get answers from verified seniors."
+              actionLabel="Ask a Question"
+              onAction={() => router.push("/ask")}
               secondaryActionLabel="Edit profile"
               onSecondaryAction={handleEditProfile}
             />
@@ -96,86 +104,78 @@ export default function ProfilePage() {
         }
         return (
           <div className="space-y-6">
-            {hasPosts && (
+            {hasQuestions && (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-niat-text-secondary mb-3">
-                  Recent posts
+                  Recent questions
                 </h3>
                 <div className="space-y-3">
-                  {posts.slice(0, 5).map((post) => (
-                    <PostCard key={post.id} post={post} />
+                  {myQuestions.slice(0, 5).map((q) => (
+                    <QuestionCard key={q.id} question={q} />
                   ))}
-                  {posts.length > 5 && (
+                  {myQuestions.length > 5 && (
                     <button
                       type="button"
-                      onClick={() => setActiveTab("posts")}
+                      onClick={() => setActiveTab("questions")}
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      View all posts →
+                      View all questions →
                     </button>
                   )}
                 </div>
               </section>
             )}
-            {hasComments && (
+            {hasAnswers && (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-niat-text-secondary mb-3">
-                  Recent comments
+                  Recent answers
                 </h3>
-                <ul className="space-y-2">
-                  {comments.slice(0, 5).map((c) => (
-                    <li key={c.id} className="rounded-lg border border-niat-border bg-[var(--niat-section)] p-3">
-                      <p className="text-sm text-niat-text line-clamp-2">{c.body}</p>
-                      <Link
-                        href={c.post_slug ? `/posts/${c.post_slug}` : "#"}
-                        className="mt-1 text-xs font-medium text-primary hover:underline"
-                      >
-                        {c.post_title ? `On: ${c.post_title}` : "View post"}
-                      </Link>
-                    </li>
+                <div className="space-y-3">
+                  {myAnswers.slice(0, 5).map((q) => (
+                    <QuestionCard key={q.id} question={q} />
                   ))}
-                </ul>
-                {comments.length > 5 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("comments")}
-                    className="mt-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    View all comments →
-                  </button>
-                )}
+                  {myAnswers.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("answers")}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      View all answers →
+                    </button>
+                  )}
+                </div>
               </section>
             )}
           </div>
         );
       }
-      case "posts": {
-        if (postsQuery.isLoading) {
+      case "questions": {
+        if (myQuestionsQuery.isLoading) {
           return <LoadingBlock className="py-8" />;
         }
-        if (posts.length === 0) {
+        if (myQuestions.length === 0) {
           return (
             <EmptyState
-              title="You don't have any posts yet"
-              description="Share your first post with the community."
-              actionLabel="Create Post"
-              onAction={() => router.push("/create-post")}
+              title="You haven't asked any questions yet"
+              description="Ask the community and get answers from verified seniors."
+              actionLabel="Ask a Question"
+              onAction={() => router.push("/ask")}
             />
           );
         }
         return (
           <div className="space-y-4">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {myQuestions.map((q) => (
+              <QuestionCard key={q.id} question={q} />
             ))}
-            {postsQuery.hasNextPage && (
+            {myQuestionsQuery.hasNextPage && (
               <button
                 type="button"
-                onClick={() => postsQuery.fetchNextPage()}
-                disabled={postsQuery.isFetchingNextPage}
+                onClick={() => myQuestionsQuery.fetchNextPage()}
+                disabled={myQuestionsQuery.isFetchingNextPage}
                 className="w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
               >
-                {postsQuery.isFetchingNextPage ? (
+                {myQuestionsQuery.isFetchingNextPage ? (
                   <span className="inline-flex items-center gap-2">
                     <LoadingSpinner size="sm" />
                     Load more
@@ -188,56 +188,33 @@ export default function ProfilePage() {
           </div>
         );
       }
-      case "comments": {
-        if (commentsQuery.isLoading) {
+      case "answers": {
+        if (myAnswersQuery.isLoading) {
           return <LoadingBlock className="py-8" />;
         }
-        if (comments.length === 0) {
+        if (myAnswers.length === 0) {
           return (
             <EmptyState
-              title="No comments yet"
-              description="Your replies will appear here."
-              actionLabel="Browse posts"
-              onAction={() => router.push("/")}
+              title="No answers yet"
+              description="When you answer questions as a verified senior, they'll appear here."
+              actionLabel="Browse questions"
+              onAction={() => router.push("/questions")}
             />
           );
         }
         return (
-          <div className="space-y-3">
-            {comments.map((c) => (
-              <article
-                key={c.id}
-                className="rounded-lg border border-niat-border bg-[var(--niat-section)] p-4"
-              >
-                <p className="text-sm text-niat-text whitespace-pre-wrap">{c.body}</p>
-                <div className="mt-2 flex items-center gap-2 text-xs text-niat-text-secondary">
-                  <span>{c.upvote_count} upvotes</span>
-                  <span>·</span>
-                  <time dateTime={c.created_at}>
-                    {new Date(c.created_at).toLocaleString()}
-                  </time>
-                  {c.post_slug && (
-                    <>
-                      <span>·</span>
-                      <Link
-                        href={`/posts/${c.post_slug}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {c.post_title ?? "View post"}
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </article>
+          <div className="space-y-4">
+            {myAnswers.map((q) => (
+              <QuestionCard key={q.id} question={q} />
             ))}
-            {commentsQuery.hasNextPage && (
+            {myAnswersQuery.hasNextPage && (
               <button
                 type="button"
-                onClick={() => commentsQuery.fetchNextPage()}
-                disabled={commentsQuery.isFetchingNextPage}
+                onClick={() => myAnswersQuery.fetchNextPage()}
+                disabled={myAnswersQuery.isFetchingNextPage}
                 className="w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
               >
-                {commentsQuery.isFetchingNextPage ? (
+                {myAnswersQuery.isFetchingNextPage ? (
                   <span className="inline-flex items-center gap-2">
                     <LoadingSpinner size="sm" />
                     Load more
@@ -246,98 +223,6 @@ export default function ProfilePage() {
                   "Load more"
                 )}
               </button>
-            )}
-          </div>
-        );
-      }
-      case "upvoted": {
-        const hasPosts = upvotedPosts.length > 0;
-        const hasComments = upvotedComments.length > 0;
-        if (upvotedPostsQuery.isLoading && upvotedCommentsQuery.isLoading) {
-          return <LoadingBlock className="py-8" />;
-        }
-        if (!hasPosts && !hasComments) {
-          return (
-            <EmptyState
-              title="No upvotes yet"
-              description="Posts and comments you upvote will appear here."
-              actionLabel="Browse posts"
-              onAction={() => router.push("/")}
-            />
-          );
-        }
-        return (
-          <div className="space-y-6">
-            {hasPosts && (
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-niat-text-secondary mb-3">
-                  Upvoted posts
-                </h3>
-                <div className="space-y-4">
-                  {upvotedPosts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                  {upvotedPostsQuery.hasNextPage && (
-                    <button
-                      type="button"
-                      onClick={() => upvotedPostsQuery.fetchNextPage()}
-                      disabled={upvotedPostsQuery.isFetchingNextPage}
-                      className="w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
-                    >
-                      {upvotedPostsQuery.isFetchingNextPage ? (
-                        <span className="inline-flex items-center gap-2">
-                          <LoadingSpinner size="sm" />
-                          Load more
-                        </span>
-                      ) : (
-                        "Load more"
-                      )}
-                    </button>
-                  )}
-                </div>
-              </section>
-            )}
-            {hasComments && (
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-niat-text-secondary mb-3">
-                  Upvoted comments
-                </h3>
-                <ul className="space-y-3">
-                  {upvotedComments.map((c) => (
-                    <li
-                      key={c.id}
-                      className="rounded-lg border border-niat-border bg-[var(--niat-section)] p-4"
-                    >
-                      <p className="text-sm text-niat-text line-clamp-3">{c.body}</p>
-                      {c.post_slug && (
-                        <Link
-                          href={`/posts/${c.post_slug}`}
-                          className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
-                        >
-                          {c.post_title ?? "View post"}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                {upvotedCommentsQuery.hasNextPage && (
-                  <button
-                    type="button"
-                    onClick={() => upvotedCommentsQuery.fetchNextPage()}
-                    disabled={upvotedCommentsQuery.isFetchingNextPage}
-                    className="mt-2 w-full rounded-xl border border-niat-border py-2.5 text-sm font-medium text-niat-text hover:bg-niat-border/30 disabled:opacity-50"
-                  >
-                    {upvotedCommentsQuery.isFetchingNextPage ? (
-                      <span className="inline-flex items-center gap-2">
-                        <LoadingSpinner size="sm" />
-                        Load more
-                      </span>
-                    ) : (
-                      "Load more"
-                    )}
-                  </button>
-                )}
-              </section>
             )}
           </div>
         );
@@ -348,8 +233,8 @@ export default function ProfilePage() {
   };
 
   return (
+    <div className="flex flex-col min-h-full">
     <div className="flex min-h-[60vh] flex-col gap-4 sm:gap-6 lg:flex-row">
-      {/* Profile card — first on mobile (top), left on desktop */}
       <div className="w-full shrink-0 lg:w-[300px] order-1">
         <div className="lg:sticky lg:top-24">
           <ProfileCard
@@ -360,11 +245,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tabs (Overview, Posts, etc.) — below profile on mobile, right on desktop */}
       <div className="min-w-0 flex-1 order-2">
         <div className="rounded-lg border border-niat-border bg-[var(--niat-section)] shadow-soft transition-colors duration-200 overflow-hidden">
           <TabNavigation
-            tabs={PROFILE_TABS}
+            tabs={profileTabs}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
@@ -380,6 +264,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { fetchProfile, getOnboardingStatus } from "@/lib/api";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
-const ALLOWED_PATHS = ["/login", "/register", "/auth/magic", "/onboarding/review"];
+const ALLOWED_PATHS = ["/login", "/register", "/auth/magic", "/auth/setup", "/onboarding/review"];
 
 /**
  * Redirects authenticated approved seniors who have not submitted
@@ -45,12 +45,17 @@ export function SeniorOnboardingGuard({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
+    if (!shouldFetchProfile || !profileLoaded || profileError) return;
+    if (profile?.needs_password_set) {
+      router.replace("/auth/setup");
+      return;
+    }
     if (!shouldCheckOnboarding || !isSuccess) return;
     if (status === null) return;
     if (!status.review_submitted) {
       router.replace("/onboarding/review");
     }
-  }, [shouldCheckOnboarding, isSuccess, status, router]);
+  }, [shouldFetchProfile, profileLoaded, profileError, profile?.needs_password_set, shouldCheckOnboarding, isSuccess, status, router]);
 
   const ready =
     !shouldFetchProfile ||

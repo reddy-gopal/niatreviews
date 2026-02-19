@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 
 export type ProfileTabId =
   | "overview"
+  | "questions"
+  | "answers"
   | "posts"
   | "comments"
   | "history"
