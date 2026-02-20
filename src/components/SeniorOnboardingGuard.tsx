@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { fetchProfile, getOnboardingStatus } from "@/lib/api";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
-const ALLOWED_PATHS = ["/login", "/register", "/auth/magic", "/auth/setup", "/onboarding/review"];
+const ALLOWED_PATHS = ["/login", "/register", "/forgot-password", "/auth/magic", "/auth/setup", "/onboarding/review"];
 
 /**
  * Redirects authenticated approved seniors who have not submitted

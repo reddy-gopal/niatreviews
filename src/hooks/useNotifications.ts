@@ -14,12 +14,14 @@ export function useNotifications(page = 1, unread?: boolean) {
   });
 }
 
-export function useUnreadCount() {
+/** Only fetches when enabled is true (e.g. when user is logged in). Set enabled: false when not authenticated to avoid 401s. */
+export function useUnreadCount(enabled = true) {
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: fetchUnreadCount,
     staleTime: 30000, // 30 seconds
     refetchInterval: 30000, // Auto-refresh every 30 seconds
+    enabled,
   });
 }
 

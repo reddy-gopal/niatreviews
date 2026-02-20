@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { clearTokens, isAuthenticated } from "@/lib/auth";
 import { useUnreadCount } from "@/hooks/useNotifications";
 import {
@@ -21,19 +21,19 @@ export function ProspectiveNavbar() {
   const [open, setOpen] = useState(false);
   const [auth, setAuth] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { data: unreadData } = useUnreadCount();
+  const { data: unreadData } = useUnreadCount(auth);
   const unreadCount = auth ? (unreadData?.count ?? 0) : 0;
 
   useEffect(() => {
     setAuth(isAuthenticated());
   }, [pathname]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -46,7 +46,7 @@ export function ProspectiveNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-3 sm:pt-3">
       <div
-        className="max-w-7xl mx-auto flex h-14 sm:h-16 md:h-20 items-center gap-2 sm:gap-4 px-3 sm:px-5 rounded-xl sm:rounded-2xl border border-niat-border shadow-soft"
+        className="max-w-[88rem] mx-auto flex h-14 sm:h-16 md:h-20 items-center gap-2 sm:gap-4 px-3 sm:px-5 rounded-xl sm:rounded-2xl border border-niat-border shadow-soft"
         style={{ backgroundColor: "var(--niat-navbar)" }}
       >
         <NavbarLogo />
@@ -69,7 +69,7 @@ export function ProspectiveNavbar() {
               <Link
                 href="/questions"
                 className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
+                  "hidden md:flex items-center justify-center gap-1.5 rounded-lg text-niat-text-secondary hover:text-primary transition-colors",
                   "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-2 text-sm font-medium",
                   pathname === "/questions" || pathname?.startsWith("/questions/") ? "text-primary" : ""
                 )}

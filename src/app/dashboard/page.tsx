@@ -13,6 +13,7 @@ import {
   Sparkles,
   FileQuestion,
   MessageCircle,
+  BadgeCheck,
 } from "lucide-react";
 import { getSeniorDashboard } from "@/lib/api";
 import { isAuthenticated, getStoredUsername } from "@/lib/auth";
@@ -21,11 +22,20 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import type { Question } from "@/types/question";
 import type { SeniorDashboardStats } from "@/lib/api";
 
+/** Full time-based greeting for desktop (e.g. "Good afternoon") */
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
+}
+
+/** On mobile, use "Hi" + name; if name is long, use "Senior" so nothing is cut off */
+const MOBILE_NAME_MAX_LENGTH = 14;
+
+function getMobileGreetingName(displayName: string): string {
+  if (displayName === "there") return displayName;
+  return displayName.length > MOBILE_NAME_MAX_LENGTH ? "Senior" : displayName;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -194,15 +204,22 @@ export default function SeniorDashboardPage() {
               className="h-6 w-6 shrink-0 text-[var(--accent-1)]"
               aria-hidden
             />
-            <h1 className="text-xl sm:text-2xl font-semibold text-niat-text truncate">
+            {/* Mobile: short "Hi" + name (or "Senior" if name is long) — no truncation */}
+            <h1 className="text-xl sm:text-2xl font-semibold text-niat-text md:hidden">
+              Hi, {getMobileGreetingName(displayName)}
+            </h1>
+            {/* Desktop: full greeting + full name */}
+            <h1 className="hidden md:block text-xl sm:text-2xl font-semibold text-niat-text">
               {greeting}, {displayName}
             </h1>
           </div>
           <span
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-primary-foreground border border-primary/30"
-            style={{ backgroundColor: "var(--primary)" }}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0"
+            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
+            title="Verified Senior"
+            aria-label="Verified Senior"
           >
-            Verified Senior
+            <BadgeCheck className="h-5 w-5" />
           </span>
           <Link
             href={`/users/${username ?? ""}`}

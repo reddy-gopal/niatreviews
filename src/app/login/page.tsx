@@ -33,6 +33,7 @@ export default function LoginPage() {
   const nextUrl = searchParams.get("next") || "/";
   const { setRoleFromProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [showForgotCreate, setShowForgotCreate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
@@ -42,6 +43,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: FormData) => {
     setError(null);
+    setShowForgotCreate(false);
     setIsSubmitting(true);
     try {
       const { access, refresh } = await login(data.username, data.password);
@@ -54,6 +56,7 @@ export default function LoginPage() {
       router.refresh();
     } catch (e) {
       setError(getAuthErrorMessage(e));
+      setShowForgotCreate(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -66,9 +69,6 @@ export default function LoginPage() {
     >
       <h1 className="text-2xl font-bold text-niat-text">Log in</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {error && (
-          <p className="text-sm text-primary bg-primary/10 border border-primary p-2 rounded-xl">{error}</p>
-        )}
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-niat-text mb-1">
             Username
@@ -105,6 +105,18 @@ export default function LoginPage() {
         >
           {isSubmitting ? "Signing in…" : "Log in"}
         </button>
+        {error && (
+          <div className="space-y-2">
+            <p className="text-sm text-primary bg-primary/10 border border-primary p-2 rounded-xl">{error}</p>
+            {showForgotCreate && (
+              <p className="text-sm">
+                <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
       </form>
       <p className="text-center text-sm text-niat-text-secondary">
         Don’t have an account?{" "}

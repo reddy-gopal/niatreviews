@@ -78,8 +78,8 @@ export function QuestionDetail({ question, slug, isAuthor = false }: QuestionDet
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-8 w-full">
+      <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/questions"
           className="inline-flex items-center gap-1.5 text-sm text-niat-text-secondary hover:text-primary transition-colors"
@@ -90,18 +90,18 @@ export function QuestionDetail({ question, slug, isAuthor = false }: QuestionDet
         {question.category && (
           <Link
             href={`/questions?category=${encodeURIComponent(question.category)}`}
-            className="inline-flex text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded-md transition-colors"
+            className="inline-flex text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-md transition-colors"
           >
             {question.category}
           </Link>
         )}
       </div>
 
-      <section aria-label="Question" className="space-y-3">
+      <section aria-label="Question" className="space-y-5 max-w-prose">
         {editing ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label htmlFor="edit-title" className="block text-sm font-medium text-niat-text mb-1">
+              <label htmlFor="edit-title" className="block text-sm font-medium text-niat-text mb-2">
                 Title
               </label>
               <input
@@ -112,30 +112,30 @@ export function QuestionDetail({ question, slug, isAuthor = false }: QuestionDet
                 minLength={TITLE_MIN}
                 maxLength={TITLE_MAX}
                 className={cn(
-                  "w-full rounded-xl border px-3 py-2 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary",
+                  "w-full rounded-xl border px-3 py-2.5 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary",
                   titleError ? "border-red-500" : "border-niat-border"
                 )}
                 style={{ backgroundColor: "var(--niat-section)" }}
               />
-              <p className="mt-1 text-xs text-niat-text-secondary">
+              <p className="mt-1.5 text-xs text-niat-text-secondary">
                 {editTitle.length}/{TITLE_MAX}
               </p>
               {titleError && <p className="mt-1 text-sm text-red-600">{titleError}</p>}
             </div>
             <div>
-              <label htmlFor="edit-body" className="block text-sm font-medium text-niat-text mb-1">
+              <label htmlFor="edit-body" className="block text-sm font-medium text-niat-text mb-2">
                 Details (optional)
               </label>
               <textarea
                 id="edit-body"
                 value={editBody}
                 onChange={(e) => setEditBody(e.target.value)}
-                rows={4}
-                className="w-full rounded-xl border border-niat-border px-3 py-2 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary"
+                rows={5}
+                className="w-full rounded-xl border border-niat-border px-3 py-2.5 text-sm text-niat-text focus:outline-none focus:ring-2 focus:ring-primary"
                 style={{ backgroundColor: "var(--niat-section)" }}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3 pt-1">
               <button
                 type="button"
                 onClick={handleSaveEdit}
@@ -156,8 +156,8 @@ export function QuestionDetail({ question, slug, isAuthor = false }: QuestionDet
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-niat-text min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-4 gap-y-3">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-niat-text min-w-0 flex-1 leading-snug">
                 {question.title}
               </h1>
               {canEditDelete && (
@@ -182,19 +182,21 @@ export function QuestionDetail({ question, slug, isAuthor = false }: QuestionDet
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-niat-text-secondary">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-niat-text-secondary pt-0.5">
               <Link
                 href={`/users/${question.author?.username ?? ""}`}
-                className="inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
               >
                 <User className="h-4 w-4 shrink-0" />
                 @{question.author?.username ?? "unknown"}
               </Link>
-              <span aria-hidden>·</span>
+              <span aria-hidden className="text-niat-text-secondary/70">·</span>
               <time dateTime={question.created_at}>{createdDate}</time>
             </div>
             {question.body?.trim() && (
-              <MarkdownBody content={question.body} className="mt-1" />
+              <div className="pt-2">
+                <MarkdownBody content={question.body} className="text-[15px] leading-relaxed" />
+              </div>
             )}
           </>
         )}

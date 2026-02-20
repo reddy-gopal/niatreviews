@@ -14,6 +14,7 @@ import {
   EXPERIENCE_FEEL_OPTIONS,
   FINAL_RECOMMENDATION_OPTIONS,
   ONBOARDING_TEXT_MIN_LENGTH,
+  isValidLinkedInProfileUrl,
 } from "@/lib/onboarding-constants";
 import { isAuthenticated } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const STEPS = [
     textLabel: "What was the best project or skill you gained?",
     textPlaceholder: "e.g. A capstone project in ML; learned to deploy apps end-to-end.",
     choiceOptions: LEARNING_BALANCE_OPTIONS,
+    linkedinKey: "linkedin_profile_url" as const,
   },
   {
     title: "Placements & career readiness",
@@ -84,6 +86,7 @@ const initialPayload: OnboardingReviewPayload = {
   recommendation_score: 0,
   who_should_join_text: "",
   final_recommendation_choice: "",
+  linkedin_profile_url: "",
 };
 
 export default function OnboardingReviewPage() {
@@ -112,7 +115,8 @@ export default function OnboardingReviewPage() {
   }, [router]);
 
   const current = STEPS[step - 1];
-  const isLastStep = step === 5;
+  const stepHasLinkedIn = "linkedinKey" in current && current.linkedinKey;
+  const isLastStep = step === STEPS.length;
 
   const update = <K extends keyof OnboardingReviewPayload>(key: K, value: OnboardingReviewPayload[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -120,14 +124,17 @@ export default function OnboardingReviewPage() {
   };
 
   const canProceed = () => {
-    const r = data[current.ratingKey];
-    const t = data[current.textKey];
-    const c = data[current.choiceKey];
-    return (
+    const r = data[current.ratingKey as keyof OnboardingReviewPayload];
+    const t = data[current.textKey as keyof OnboardingReviewPayload];
+    const c = data[current.choiceKey as keyof OnboardingReviewPayload];
+    const base =
       typeof r === "number" && r >= 1 && r <= 5 &&
       typeof t === "string" && t.trim().length >= ONBOARDING_TEXT_MIN_LENGTH &&
-      typeof c === "string" && c.length > 0
-    );
+      typeof c === "string" && c.length > 0;
+    if (stepHasLinkedIn) {
+      return base && isValidLinkedInProfileUrl(data.linkedin_profile_url);
+    }
+    return base;
   };
 
   const handleNext = () => {
@@ -182,14 +189,15 @@ export default function OnboardingReviewPage() {
 
         <div className="rounded-2xl border border-niat-border p-6 sm:p-8 shadow-card bg-white">
           <div className="mb-6">
-            <p className="text-sm text-niat-text-secondary mb-1">Step {step} of 5</p>
+            <p className="text-sm text-niat-text-secondary mb-1">Step {step} of {STEPS.length}</p>
             <div className="h-2 rounded-full bg-niat-border overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-300" style={{ width: `${(step / 5) * 100}%` }} />
+              <div className="h-full bg-primary transition-all duration-300" style={{ width: `${(step / STEPS.length) * 100}%` }} />
             </div>
           </div>
 
           <h2 className="text-lg font-bold text-niat-text mb-6">{current.title}</h2>
 
+          <>
           <div className="mb-6">
             <p className="text-sm font-medium text-niat-text mb-2">Rate from 1 to 5 stars</p>
             <div className="flex gap-1">
@@ -225,6 +233,24 @@ export default function OnboardingReviewPage() {
           />
           </div>
 
+          {stepHasLinkedIn && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-niat-text mb-1">
+              LinkedIn profile URL
+            </label>
+            <input
+              type="url"
+              value={data.linkedin_profile_url}
+              onChange={(e) => update("linkedin_profile_url", e.target.value.trim())}
+              placeholder="https://www.linkedin.com/in/yourprofile"
+              className="w-full rounded-xl border border-niat-border px-4 py-2.5 text-niat-text bg-white placeholder:text-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            {data.linkedin_profile_url && !isValidLinkedInProfileUrl(data.linkedin_profile_url) && (
+              <p className="text-sm text-amber-600 mt-1">Enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourprofile)</p>
+            )}
+          </div>
+          )}
+
           <div className="mb-8">
             <p className="text-sm font-medium text-niat-text mb-2">Pick the option that fits best</p>
           <div className="space-y-2">
@@ -251,6 +277,7 @@ export default function OnboardingReviewPage() {
             ))}
           </div>
         </div>
+          </>
 
           {submitError && (
             <p className="text-sm text-red-600 mb-4" role="alert">

@@ -60,11 +60,50 @@ export async function login(username: string, password: string) {
   return data;
 }
 
-export async function register(payload: { username: string; email: string; password: string }) {
-  const { data } = await api.post<{ id: string; username: string; email: string }>(
+export async function register(payload: {
+  username: string;
+  phone: string;
+  email?: string;
+  password: string;
+}) {
+  const { data } = await api.post<{ id: string; username: string; email: string; phone: string }>(
     "/auth/register/",
     payload
   );
+  return data;
+}
+
+/** Request OTP by email (registration). Demo OTP is 6 digits. */
+export async function requestOtp(email: string): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>("/verification/otp/request/", { email });
+  return data;
+}
+
+/** Request OTP by phone (registration or forgot password). */
+export async function requestOtpByPhone(phone: string): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>("/verification/otp/request/", { phone });
+  return data;
+}
+
+/** Verify OTP by email. Returns { verified: true } on success. */
+export async function verifyOtp(email: string, code: string): Promise<{ verified: boolean }> {
+  const { data } = await api.post<{ verified: boolean }>("/verification/otp/verify/", { email, code });
+  return data;
+}
+
+/** Verify OTP by phone. Returns { verified: true } on success. */
+export async function verifyOtpByPhone(phone: string, code: string): Promise<{ verified: boolean }> {
+  const { data } = await api.post<{ verified: boolean }>("/verification/otp/verify/", { phone, code });
+  return data;
+}
+
+/** Reset password after verifying OTP sent to phone (forgot password flow). */
+export async function forgotPasswordReset(phone: string, code: string, newPassword: string): Promise<{ detail: string }> {
+  const { data } = await api.post<{ detail: string }>("/auth/forgot-password/reset/", {
+    phone,
+    code,
+    new_password: newPassword,
+  });
   return data;
 }
 
@@ -102,6 +141,19 @@ export async function fetchUserProfile(username: string): Promise<PublicProfile>
 
 export async function updateProfile(payload: { email?: string; phone_number?: string | null }): Promise<Profile> {
   const { data } = await api.patch<Profile>("/auth/me/", payload);
+  return data;
+}
+
+export async function changePassword(payload: {
+  current_password: string;
+  new_password: string;
+}): Promise<{ detail: string }> {
+  const { data } = await api.post<{ detail: string }>("/auth/change-password/", payload);
+  return data;
+}
+
+export async function deleteAccount(payload: { password: string }): Promise<{ detail: string }> {
+  const { data } = await api.post<{ detail: string }>("/auth/delete-account/", payload);
   return data;
 }
 
@@ -163,6 +215,7 @@ export interface OnboardingReviewPayload {
   recommendation_score: number;
   who_should_join_text: string;
   final_recommendation_choice: string;
+  linkedin_profile_url: string;
 }
 
 export async function submitOnboardingReview(payload: OnboardingReviewPayload): Promise<{ status: string }> {

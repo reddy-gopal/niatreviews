@@ -7,28 +7,58 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AxiosError } from "axios";
-import { register as apiRegister, login, fetchProfile } from "@/lib/api";
+import { register as apiRegister, login, fetchProfile, requestOtpByPhone, verifyOtpByPhone } from "@/lib/api";
 import { setTokens } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 
+/** Extract user-facing message(s) from register API 400 response. */
 function getRegisterErrorMessage(err: unknown): string {
-  if (err instanceof AxiosError && err.response?.data && typeof err.response.data === "object") {
-    const d = err.response.data as Record<string, unknown>;
-    if (Array.isArray(d.non_field_errors) && d.non_field_errors[0]) return String(d.non_field_errors[0]);
-    if (typeof d.detail === "string") return d.detail;
-    for (const v of Object.values(d)) {
-      if (Array.isArray(v) && v[0]) return String(v[0]);
+  if (!(err instanceof AxiosError) || !err.response?.data || typeof err.response.data !== "object") {
+    return "Registration failed.";
+  }
+  const d = err.response.data as Record<string, unknown>;
+  const messages: string[] = [];
+  if (typeof d.detail === "string" && d.detail.trim()) messages.push(d.detail.trim());
+  if (Array.isArray(d.non_field_errors) && d.non_field_errors.length) {
+    const msg = d.non_field_errors[0];
+    if (typeof msg === "string" && msg.trim()) messages.push(msg.trim());
+  }
+  for (const key of ["username", "email", "password", "phone"]) {
+    const v = d[key];
+    if (typeof v === "string" && v.trim()) messages.push(v.trim());
+    if (Array.isArray(v) && v.length && typeof v[0] === "string" && (v[0] as string).trim()) {
+      messages.push((v[0] as string).trim());
     }
   }
+  if (messages.length) return messages.join(" ");
   return "Registration failed.";
+}
+
+/** Extract message from OTP API error (same shape as register). */
+function getOtpErrorMessage(err: unknown): string {
+  if (!(err instanceof AxiosError) || !err.response?.data || typeof err.response.data !== "object") {
+    return "Something went wrong.";
+  }
+  const d = err.response.data as Record<string, unknown>;
+  if (typeof d.detail === "string" && d.detail.trim()) return d.detail.trim();
+  for (const v of Object.values(d)) {
+    if (typeof v === "string" && (v as string).trim()) return (v as string).trim();
+    if (Array.isArray(v) && v[0] && typeof v[0] === "string") return String(v[0]).trim();
+  }
+  return "Something went wrong.";
 }
 
 const schema = z
   .object({
     username: z.string().min(2, "At least 2 characters"),
-    email: z.string().email("Invalid email"),
+    phone: z.string().min(10, "Enter a valid mobile number"),
+    email: z.string().optional(),
     password: z.string().min(8, "At least 8 characters"),
     confirm: z.string(),
+  })
+  .refine((d) => !d.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email), {
+    message: "Invalid email",
+    path: ["email"],
   })
   .refine((d) => d.password === d.confirm, {
     message: "Passwords don’t match",
@@ -44,11 +74,58 @@ export default function RegisterPage() {
   const { setRoleFromProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const phoneValue = watch("phone");
+
+  const handleSendOtp = async () => {
+    const phone = (phoneValue || "").trim();
+    if (!phone || errors.phone) return;
+    setOtpError(null);
+    setOtpSending(true);
+    try {
+      await requestOtpByPhone(phone);
+      setOtpSent(true);
+    } catch (e) {
+      setOtpError(getOtpErrorMessage(e));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const phone = (phoneValue || "").trim();
+    const code = otpCode.trim();
+    if (!phone || !code || code.length !== 6) {
+      setOtpError("Enter the 6-digit code.");
+      return;
+    }
+    setOtpError(null);
+    setOtpVerifying(true);
+    try {
+      const res = await verifyOtpByPhone(phone, code);
+      if (res.verified) {
+        setPhoneVerified(true);
+        setOtpError(null);
+      } else {
+        setOtpError("Invalid or expired code.");
+      }
+    } catch (e) {
+      setOtpError(getOtpErrorMessage(e));
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     setError(null);
@@ -56,7 +133,8 @@ export default function RegisterPage() {
     try {
       await apiRegister({
         username: data.username,
-        email: data.email,
+        phone: data.phone,
+        email: data.email?.trim() || undefined,
         password: data.password,
       });
       const { access, refresh } = await login(data.username, data.password);
@@ -99,15 +177,82 @@ export default function RegisterPage() {
           )}
         </div>
         <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-niat-text mb-1">
+            Mobile number
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="phone"
+              type="tel"
+              {...register("phone")}
+            className="flex-1 rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            autoComplete="tel"
+              readOnly={phoneVerified}
+            />
+            {!phoneVerified ? (
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={!!errors.phone || !phoneValue?.trim() || otpSending}
+                className="shrink-0 rounded-xl border border-primary bg-primary/10 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {otpSending ? "Sending…" : "Send OTP"}
+              </button>
+            ) : (
+              <span className="flex items-center shrink-0 rounded-xl border border-green-600 bg-green-600/10 px-3 py-2 text-sm font-medium text-green-700" aria-label="Phone verified">
+                Verified
+              </span>
+            )}
+          </div>
+          {errors.phone && (
+            <p className="text-sm text-primary mt-1">{errors.phone.message}</p>
+          )}
+          {!phoneVerified && otpSent && (
+            <div className="mt-3 space-y-2">
+              <label htmlFor="otp" className="block text-sm font-medium text-niat-text">
+                Verification code (6 digits)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => {
+                    setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                    setOtpError(null);
+                  }}
+                  placeholder="123456"
+                  className="w-28 rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder:text-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={otpCode.length !== 6 || otpVerifying}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {otpVerifying ? "Verifying…" : "Verify OTP"}
+                </button>
+              </div>
+              {otpError && <p className="text-sm text-primary">{otpError}</p>}
+              <p className="text-xs text-niat-text-secondary">
+                For demo use code: <strong>123456</strong>
+              </p>
+            </div>
+          )}
+        </div>
+        <div>
           <label htmlFor="email" className="block text-sm font-medium text-niat-text mb-1">
-            Email
+            Email <span className="text-niat-text-secondary font-normal">(optional)</span>
           </label>
           <input
             id="email"
             type="email"
             {...register("email")}
-            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className="w-full rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder:text-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             autoComplete="email"
+            placeholder="you@example.com"
           />
           {errors.email && (
             <p className="text-sm text-primary mt-1">{errors.email.message}</p>
@@ -145,10 +290,10 @@ export default function RegisterPage() {
         </div>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !phoneVerified}
           className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Creating account…" : "Register"}
+          {isSubmitting ? "Creating account…" : phoneVerified ? "Register" : "Verify phone to continue"}
         </button>
       </form>
       <p className="text-center text-sm text-niat-text-secondary">

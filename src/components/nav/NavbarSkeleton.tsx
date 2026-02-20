@@ -10,7 +10,7 @@ export function NavbarSkeleton() {
   return (
     <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-3 sm:pt-3">
       <div
-        className="max-w-7xl mx-auto flex h-14 sm:h-16 md:h-20 items-center gap-2 sm:gap-4 px-3 sm:px-5 rounded-xl sm:rounded-2xl border border-niat-border shadow-soft"
+        className="max-w-[88rem] mx-auto flex h-14 sm:h-16 md:h-20 items-center gap-2 sm:gap-4 px-3 sm:px-5 rounded-xl sm:rounded-2xl border border-niat-border shadow-soft"
         style={{ backgroundColor: "var(--niat-navbar)" }}
       >
         <NavbarLogo />

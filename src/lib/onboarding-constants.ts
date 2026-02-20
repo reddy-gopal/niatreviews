@@ -33,3 +33,11 @@ export const FINAL_RECOMMENDATION_OPTIONS = [
 ] as const;
 
 export const ONBOARDING_TEXT_MIN_LENGTH = 20;
+
+/** Valid LinkedIn profile URL (e.g. https://www.linkedin.com/in/username) */
+export const LINKEDIN_PROFILE_URL_RE = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?/i;
+
+export function isValidLinkedInProfileUrl(value: string): boolean {
+  const trimmed = (value || "").trim();
+  return trimmed.length > 0 && LINKEDIN_PROFILE_URL_RE.test(trimmed);
+}

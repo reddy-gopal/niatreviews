@@ -14,7 +14,7 @@ export function ProspectiveLeftSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:block w-56 shrink-0 min-h-0 overflow-y-auto scrollbar-hide">
+    <aside className="hidden lg:block w-[220px] shrink-0 min-h-0 overflow-y-auto scrollbar-hide">
       <nav className="rounded-2xl bg-niat-section border border-niat-border p-3 shadow-soft">
         <ul className="space-y-0.5">
           {nav.map(({ href, label }) => (
