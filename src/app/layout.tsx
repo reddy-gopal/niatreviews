@@ -14,6 +14,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "NIAT Q&A — Ask seniors, get answers",
   description: "Prospective students ask questions. Verified NIAT seniors answer.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

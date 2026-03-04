@@ -7,12 +7,16 @@ import {
 } from "@/lib/api";
 import { useInvalidateQuestion } from "./useQuestionDetail";
 
-const followUpsKey = (slug: string) => ["followups", slug] as const;
+const followUpsKey = (slug: string, answerId?: string) =>
+  ["followups", slug, answerId ?? ""] as const;
 
-export function useFollowUps(slug: string | null, cursor?: string) {
+export function useFollowUps(
+  slug: string | null,
+  opts?: { answer_id?: string; cursor?: string }
+) {
   return useQuery({
-    queryKey: [...followUpsKey(slug ?? ""), cursor],
-    queryFn: () => getFollowUps(slug!, cursor),
+    queryKey: [...followUpsKey(slug ?? "", opts?.answer_id), opts?.cursor],
+    queryFn: () => getFollowUps(slug!, opts),
     enabled: !!slug,
   });
 }
@@ -22,10 +26,16 @@ export function useCreateFollowUp(slug: string | null) {
   const invalidateQuestion = useInvalidateQuestion();
 
   return useMutation({
-    mutationFn: (body: string) => createFollowUp(slug!, body),
-    onSuccess: () => {
+    mutationFn: (params: {
+      body: string;
+      answerId: string;
+      parentId?: string | null;
+    }) =>
+      createFollowUp(slug!, params.body, params.answerId, params.parentId),
+    onSuccess: (_, { answerId }) => {
       if (slug) {
         queryClient.invalidateQueries({ queryKey: followUpsKey(slug) });
+        queryClient.invalidateQueries({ queryKey: followUpsKey(slug, answerId) });
         invalidateQuestion(slug);
       }
     },

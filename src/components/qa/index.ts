@@ -4,6 +4,7 @@ export { AnswerBlock } from "./AnswerBlock";
 export { AnswerForm } from "./AnswerForm";
 export { VoteButtons } from "./VoteButtons";
 export { FollowUpThread } from "./FollowUpThread";
+export { AnswerFollowUpThread } from "./AnswerFollowUpThread";
 export { FollowUpCard } from "./FollowUpCard";
 export { FollowUpThreadSkeleton } from "./FollowUpThreadSkeleton";
 export { FAQAccordion } from "./FAQAccordion";

@@ -33,9 +33,15 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       ) : (
         <NavbarSkeleton />
       )}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
+      <div
+        className={
+          pathname === "/questions"
+            ? "flex-1 min-h-0 overflow-hidden flex flex-col"
+            : "flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col"
+        }
+      >
         <MainLayout>{children}</MainLayout>
-        {!isMinimalChrome && <Footer />}
+        {!isMinimalChrome && pathname !== "/questions" && <Footer />}
       </div>
       {!isMinimalChrome &&
         (showRealNav ? (

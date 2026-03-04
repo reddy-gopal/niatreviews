@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
-import { requestOtpByPhone, forgotPasswordReset } from "@/lib/api";
+import { CheckCircle } from "lucide-react";
+import { requestOtpByPhone, verifyOtpByPhone, forgotPasswordReset } from "@/lib/api";
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof AxiosError && err.response?.data && typeof err.response.data === "object") {
@@ -28,6 +29,7 @@ export default function ForgotPasswordPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [resetting, setResetting] = useState(false);
 
   const handleSendOtp = async () => {
@@ -52,8 +54,8 @@ export default function ForgotPasswordPage() {
   const handleReset = async () => {
     const p = phone.trim();
     const c = code.trim();
-    if (!p || !c || c.length !== 6) {
-      setError("Enter the 6-digit code sent to your phone.");
+    if (!p || !c || c.length !== 4) {
+      setError("Enter the 4-digit code sent to your phone.");
       return;
     }
     if (newPassword.length < 8) {
@@ -142,39 +144,54 @@ export default function ForgotPasswordPage() {
           <>
             <div>
               <label htmlFor="code" className="block text-sm font-medium text-niat-text mb-1">
-                Verification code (6 digits)
+                Verification code (4 digits)
               </label>
               <div className="flex gap-2">
-                <input
-                  id="code"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={code}
-                  onChange={(e) => {
-                    setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                    setError(null);
-                  }}
-                  placeholder="123456"
-                  readOnly={otpVerified}
-                  className="flex-1 rounded-xl border border-niat-border bg-white px-3 py-2 text-sm text-niat-text placeholder:text-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                {otpVerified ? (
-                  <span className="flex items-center shrink-0 rounded-xl border border-green-600 bg-green-600/10 px-3 py-2 text-sm font-medium text-green-700" aria-label="OTP verified">
-                    Verified
-                  </span>
-                ) : (
+                <div className="relative flex-1">
+                  <input
+                    id="code"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={code}
+                    onChange={(e) => {
+                      setCode(e.target.value.replace(/\D/g, "").slice(0, 4));
+                      setError(null);
+                    }}
+                    placeholder="Enter code"
+                    readOnly={otpVerified}
+                    className={`w-full rounded-xl border border-niat-border bg-white px-3 py-2 text-sm text-niat-text placeholder:text-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary ${otpVerified ? "pr-10 border-green-600/50 bg-green-50/30" : ""}`}
+                  />
+                  {otpVerified && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-green-600" aria-label="Verified">
+                      <CheckCircle className="h-5 w-5" />
+                    </span>
+                  )}
+                </div>
+                {!otpVerified && (
                   <button
                     type="button"
-                    onClick={() => code.length === 6 && setOtpVerified(true)}
-                    disabled={code.length !== 6}
+                    onClick={async () => {
+                      if (code.length !== 4) return;
+                      setError(null);
+                      setVerifying(true);
+                      try {
+                        const res = await verifyOtpByPhone(phone.trim(), code);
+                        if (res.verified) setOtpVerified(true);
+                        else setError("Invalid or expired code.");
+                      } catch (e) {
+                        setError(getErrorMessage(e));
+                      } finally {
+                        setVerifying(false);
+                      }
+                    }}
+                    disabled={code.length !== 4 || verifying}
                     className="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Verify OTP
+                    {verifying ? "Verifying…" : "Verify OTP"}
                   </button>
                 )}
               </div>
-              <p className="text-xs text-niat-text-secondary mt-1">Demo code: 123456</p>
             </div>
             {otpVerified && (
               <>

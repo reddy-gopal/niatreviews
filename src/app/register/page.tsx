@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AxiosError } from "axios";
+import { CheckCircle } from "lucide-react";
 import { register as apiRegister, login, fetchProfile, requestOtpByPhone, verifyOtpByPhone } from "@/lib/api";
 import { setTokens } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
@@ -94,7 +95,7 @@ export default function RegisterPage() {
     setOtpError(null);
     setOtpSending(true);
     try {
-      await requestOtpByPhone(phone);
+      await requestOtpByPhone(phone, { for: "register" });
       setOtpSent(true);
     } catch (e) {
       setOtpError(getOtpErrorMessage(e));
@@ -106,8 +107,8 @@ export default function RegisterPage() {
   const handleVerifyOtp = async () => {
     const phone = (phoneValue || "").trim();
     const code = otpCode.trim();
-    if (!phone || !code || code.length !== 6) {
-      setOtpError("Enter the 6-digit code.");
+    if (!phone || !code || code.length !== 4) {
+      setOtpError("Enter the 4-digit code.");
       return;
     }
     setOtpError(null);
@@ -160,7 +161,9 @@ export default function RegisterPage() {
       <h1 className="text-2xl font-bold text-niat-text">Register</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {error && (
-          <p className="text-sm text-primary bg-primary/10 border border-primary p-2 rounded-xl">{error}</p>
+          <p className="text-sm text-primary bg-primary/10 border border-primary p-2 rounded-xl" role="alert">
+            {error}
+          </p>
         )}
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-niat-text mb-1">
@@ -181,15 +184,22 @@ export default function RegisterPage() {
             Mobile number
           </label>
           <div className="flex gap-2">
-            <input
-              id="phone"
-              type="tel"
-              {...register("phone")}
-            className="flex-1 rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-            autoComplete="tel"
-              readOnly={phoneVerified}
-            />
-            {!phoneVerified ? (
+            <div className="relative flex-1">
+              <input
+                id="phone"
+                type="tel"
+                {...register("phone")}
+                className={`rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary w-full ${phoneVerified ? "pr-10 border-green-600/50 bg-green-50/30" : ""}`}
+                autoComplete="tel"
+                readOnly={phoneVerified}
+              />
+              {phoneVerified && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-green-600" aria-label="Verified">
+                  <CheckCircle className="h-5 w-5" />
+                </span>
+              )}
+            </div>
+            {!phoneVerified && (
               <button
                 type="button"
                 onClick={handleSendOtp}
@@ -198,47 +208,44 @@ export default function RegisterPage() {
               >
                 {otpSending ? "Sending…" : "Send OTP"}
               </button>
-            ) : (
-              <span className="flex items-center shrink-0 rounded-xl border border-green-600 bg-green-600/10 px-3 py-2 text-sm font-medium text-green-700" aria-label="Phone verified">
-                Verified
-              </span>
             )}
           </div>
           {errors.phone && (
             <p className="text-sm text-primary mt-1">{errors.phone.message}</p>
           )}
+          {otpError && (
+            <p className="mt-2 text-sm text-primary bg-primary/10 border border-primary px-3 py-2 rounded-xl" role="alert">
+              {otpError}
+            </p>
+          )}
           {!phoneVerified && otpSent && (
             <div className="mt-3 space-y-2">
               <label htmlFor="otp" className="block text-sm font-medium text-niat-text">
-                Verification code (6 digits)
+                Verification code (4 digits)
               </label>
               <div className="flex gap-2">
                 <input
                   id="otp"
                   type="text"
                   inputMode="numeric"
-                  maxLength={6}
+                  maxLength={4}
                   value={otpCode}
                   onChange={(e) => {
-                    setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                    setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 4));
                     setOtpError(null);
                   }}
-                  placeholder="123456"
+                  placeholder="0000"
                   className="w-28 rounded-xl border border-niat-border bg-niat-section px-3 py-2 text-sm text-niat-text placeholder:text-niat-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
                 <button
                   type="button"
                   onClick={handleVerifyOtp}
-                  disabled={otpCode.length !== 6 || otpVerifying}
+                  disabled={otpCode.length !== 4 || otpVerifying}
                   className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {otpVerifying ? "Verifying…" : "Verify OTP"}
                 </button>
               </div>
-              {otpError && <p className="text-sm text-primary">{otpError}</p>}
-              <p className="text-xs text-niat-text-secondary">
-                For demo use code: <strong>123456</strong>
-              </p>
             </div>
           )}
         </div>

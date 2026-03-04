@@ -12,6 +12,8 @@ export interface Answer {
   user_vote?: 1 | -1 | null;
 }
 
+import type { FollowUp } from "@/lib/api";
+
 export interface Question {
   id: string;
   slug: string;
@@ -36,6 +38,8 @@ export interface Question {
   answer_count?: number;
   user_vote?: 1 | -1 | null;
   has_answer?: boolean;
+  /** Follow-ups per answer (detail view); each has answer_id, parent_id for threading. */
+  followups?: FollowUp[];
 }
 
 export interface FAQ extends Question {

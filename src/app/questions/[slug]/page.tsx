@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuestionDetail } from "@/hooks/useQuestionDetail";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProfile } from "@/lib/api";
-import { QuestionDetail, AnswerBlock, AnswerForm, FollowUpThread } from "@/components/qa";
+import { QuestionDetail, AnswerBlock, AnswerForm, AnswerFollowUpThread } from "@/components/qa";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -73,10 +73,25 @@ export default function QuestionDetailPage() {
         <QuestionDetail question={question} slug={slug} isAuthor={isAuthor} />
 
         {answers.length > 0 && (
-          <div className="space-y-6">
-            {answers.map((answer) => (
-              <AnswerBlock key={answer.id} answer={answer} questionSlug={slug} />
-            ))}
+          <div className="space-y-8">
+            {answers.map((answer) => {
+              const followupsForAnswer =
+                question.followups?.filter(
+                  (fu) => fu.answer_id === answer.id || (fu.answer_id == null && answer.id === answers[0]?.id)
+                ) ?? [];
+              return (
+                <div key={answer.id} className="space-y-0">
+                  <AnswerBlock answer={answer} questionSlug={slug} />
+                  <AnswerFollowUpThread
+                    questionSlug={slug}
+                    answerId={answer.id}
+                    followups={followupsForAnswer}
+                    isQuestionAuthor={isAuthor}
+                    seniorHasAnswered={currentUserAlreadyAnswered}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -90,12 +105,6 @@ export default function QuestionDetailPage() {
             No answer yet. Only verified seniors can answer questions.
           </div>
         )}
-
-        <FollowUpThread
-          questionSlug={slug}
-          hasAnswer={hasAnswer}
-          isQuestionAuthor={isAuthor}
-        />
       </div>
     </div>
   );

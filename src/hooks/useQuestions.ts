@@ -9,6 +9,8 @@ export interface UseQuestionsOptions {
   answerAuthor?: string | null;
   /** Filter by category (e.g. "Scholarships & Fee", "Placements & Career") */
   category?: string | null;
+  /** Page size for cursor pagination (e.g. 7 desktop, 5 mobile). Backend default 20 if not set. */
+  pageSize?: number;
   /** When false, the query is not run (e.g. for "My Answers" when user is not a verified senior) */
   enabled?: boolean;
 }
@@ -29,6 +31,7 @@ async function fetchPage(
 ): Promise<PaginatedQuestions> {
   const params: Record<string, string> = {};
   if (cursor) params.cursor = cursor;
+  if (opts.pageSize != null) params.page_size = String(opts.pageSize);
   if (opts.answered) params.answered = opts.answered;
   if (opts.author) params.author = opts.author;
   if (opts.answerAuthor) params.answer_author = opts.answerAuthor;
@@ -39,7 +42,14 @@ async function fetchPage(
 export function useQuestions(opts: UseQuestionsOptions = {}) {
   const { enabled = true, ...rest } = opts;
   return useInfiniteQuery({
-    queryKey: ["questions", rest.answered ?? "", rest.author ?? "", rest.answerAuthor ?? "", rest.category ?? ""],
+    queryKey: [
+      "questions",
+      rest.answered ?? "",
+      rest.author ?? "",
+      rest.answerAuthor ?? "",
+      rest.category ?? "",
+      rest.pageSize ?? "",
+    ],
     queryFn: ({ pageParam }) => fetchPage(pageParam, rest),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => parseCursorFromNext(last.next),

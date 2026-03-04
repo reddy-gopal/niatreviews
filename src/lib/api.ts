@@ -60,6 +60,12 @@ export async function login(username: string, password: string) {
   return data;
 }
 
+/** Log in with phone + OTP. Verify OTP then returns JWT. */
+export async function loginByPhoneOtp(phone: string, code: string): Promise<{ access: string; refresh: string }> {
+  const { data } = await api.post<{ access: string; refresh: string }>("/auth/login/phone/", { phone, code });
+  return data;
+}
+
 export async function register(payload: {
   username: string;
   phone: string;
@@ -73,15 +79,20 @@ export async function register(payload: {
   return data;
 }
 
-/** Request OTP by email (registration). Demo OTP is 6 digits. */
+/** Request OTP by email (registration). */
 export async function requestOtp(email: string): Promise<{ message: string }> {
   const { data } = await api.post<{ message: string }>("/verification/otp/request/", { email });
   return data;
 }
 
-/** Request OTP by phone (registration or forgot password). */
-export async function requestOtpByPhone(phone: string): Promise<{ message: string }> {
-  const { data } = await api.post<{ message: string }>("/verification/otp/request/", { phone });
+/** Request OTP by phone. Use for: "register" to block already-registered; for: "login" to block unregistered. */
+export async function requestOtpByPhone(
+  phone: string,
+  opts?: { for?: "register" | "login" }
+): Promise<{ message: string }> {
+  const body: { phone: string; for?: string } = { phone };
+  if (opts?.for) body.for = opts.for;
+  const { data } = await api.post<{ message: string }>("/verification/otp/request/", body);
   return data;
 }
 
@@ -237,6 +248,7 @@ export interface QuestionVoteResponse {
 
 export async function getQuestions(params: {
   cursor?: string;
+  page_size?: number;
   answered?: "true" | "false";
   author?: string;
   answer_author?: string;
@@ -422,7 +434,7 @@ export async function markAllNotificationsRead(): Promise<{ marked: number }> {
   return data;
 }
 
-// --- Follow-ups (question thread) ---
+// --- Follow-ups (per-answer, Reddit-style thread) ---
 
 export interface FollowUpAuthor {
   id: string;
@@ -432,6 +444,8 @@ export interface FollowUpAuthor {
 
 export interface FollowUp {
   id: string;
+  answer_id: string | null;
+  parent_id: string | null;
   author: FollowUpAuthor;
   body: string;
   created_at: string;
@@ -446,19 +460,34 @@ export interface PaginatedFollowUps {
   results: FollowUp[];
 }
 
-export async function getFollowUps(slug: string, cursor?: string): Promise<PaginatedFollowUps> {
-  const params = cursor ? { cursor } : {};
+export async function getFollowUps(
+  slug: string,
+  opts?: { answer_id?: string; cursor?: string }
+): Promise<PaginatedFollowUps> {
+  const params: Record<string, string> = {};
+  if (opts?.answer_id) params.answer_id = opts.answer_id;
+  if (opts?.cursor) params.cursor = opts.cursor;
   const { data } = await api.get<PaginatedFollowUps>(
     `/questions/${encodeURIComponent(slug)}/followups/`,
-    { params }
+    { params: Object.keys(params).length ? params : undefined }
   );
   return data;
 }
 
-export async function createFollowUp(slug: string, body: string): Promise<FollowUp> {
+export async function createFollowUp(
+  slug: string,
+  body: string,
+  answerId: string,
+  parentId?: string | null
+): Promise<FollowUp> {
+  const payload: { body: string; answer_id: string; parent_id?: string } = {
+    body,
+    answer_id: answerId,
+  };
+  if (parentId) payload.parent_id = parentId;
   const { data } = await api.post<FollowUp>(
     `/questions/${encodeURIComponent(slug)}/followups/`,
-    { body }
+    payload
   );
   return data;
 }

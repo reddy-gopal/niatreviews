@@ -43,20 +43,65 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Senior dashboard: no right sidebar (guide removed), main content uses full width
-  const mainMaxWidth = isProfileSection
-    ? "max-w-full"
-    : isDashboard
-      ? "max-w-4xl"
-      : "max-w-2xl";
+  // Profile section: no sidebars, content constrained to navbar width (max-w-[88rem] mx-auto)
+  if (isProfileSection) {
+    return (
+      <main className="flex-1 min-w-0 scrollbar-hide w-full px-2 pt-2 sm:px-3 sm:pt-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-4">
+        <div className="max-w-[88rem] mx-auto">
+          {children}
+        </div>
+      </main>
+    );
+  }
 
+  // Dashboard: no right sidebar, main content uses full width (normal scroll)
+  if (isDashboard) {
+    return (
+      <div className="flex gap-6 max-w-7xl mx-auto px-6 pt-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-4 md:pt-4 w-full min-w-0">
+        {showSidebars && (isSenior ? <SeniorLeftSidebar /> : <ProspectiveLeftSidebar />)}
+        <main className="flex-1 min-w-0 scrollbar-hide max-w-4xl ml-0">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  // Questions page only: fixed left & right sidebars, only middle scrolls
+  const isQuestionsPage = pathname === "/questions";
+  if (isQuestionsPage) {
+    const mainMaxWidth = "max-w-2xl";
+    return (
+      <div className="flex flex-1 min-h-0 flex-col w-full">
+        <div className="flex flex-1 min-h-0 gap-6 max-w-7xl mx-auto px-6 pt-2 pb-2 md:pt-4 md:pb-4 w-full min-w-0">
+          {showSidebars && (
+            <div className="hidden lg:block shrink-0 min-h-0 overflow-y-auto scrollbar-hide">
+              {isSenior ? <SeniorLeftSidebar /> : <ProspectiveLeftSidebar />}
+            </div>
+          )}
+          <main
+            className={`flex-1 min-w-0 min-h-0 overflow-y-auto scrollbar-hide ${mainMaxWidth} ml-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-4`}
+          >
+            {children}
+          </main>
+          {showSidebars && (
+            <div className="hidden xl:block shrink-0 min-h-0 overflow-y-auto scrollbar-hide">
+              <RightSidebar />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Other sidebar pages (notifications, ask, etc.): normal layout — sidebars and main scroll together, footer in AppChrome
+  const mainMaxWidth = "max-w-2xl";
   return (
     <div className="flex gap-6 max-w-7xl mx-auto px-6 pt-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-4 md:pt-4 w-full min-w-0">
-      {!isProfileSection && showSidebars && (isSenior ? <SeniorLeftSidebar /> : <ProspectiveLeftSidebar />)}
+      {showSidebars && (isSenior ? <SeniorLeftSidebar /> : <ProspectiveLeftSidebar />)}
       <main className={`flex-1 min-w-0 scrollbar-hide ${mainMaxWidth} ml-0`}>
         {children}
       </main>
-      {!isProfileSection && !isDashboard && showSidebars && <RightSidebar />}
+      {showSidebars && <RightSidebar />}
     </div>
   );
 }
